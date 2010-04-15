@@ -1,0 +1,15 @@
+&Program_Settings
+Units='fsw'                         !Options: fsw or msw
+Altitude_Dive_Algorithm='OFF'       !Options: ON or OFF
+Minimum_Deco_Stop_Time=1.0          !Options: real positive number
+Critical_Radius_N2_Microns=0.8      !Adj. Range: 0.2 to 1.35 microns
+Critical_Radius_He_Microns=0.7      !Adj. Range: 0.2 to 1.35 microns
+Critical_Volume_Algorithm='ON'      !Options: ON or OFF
+Crit_Volume_Parameter_Lambda=7500.0 !Adj. Range: 6500 to 8300 fsw-min
+Gradient_Onset_of_Imperm_Atm=8.2    !Adj. Range: 5.0 to 10.0 atm
+Surface_Tension_Gamma=0.0179        !Adj. Range: 0.015 to 0.065 N/m
+Skin_Compression_GammaC=0.257       !Adj. Range: 0.160 to 0.290 N/m
+Regeneration_Time_Constant=20160.0  !Adj. Range: 10080 to 51840 min
+Pressure_Other_Gases_mmHg=102.0     !Constant value for PO2 up to 2 atm
+/
+

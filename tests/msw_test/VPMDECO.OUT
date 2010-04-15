@@ -1,0 +1,71 @@
+                          DECOMPRESSION CALCULATION PROGRAM
+                        Developed in FORTRAN by Erik C. Baker
+ 
+ 
+Program Run:    02-16-2010 at 04:05 pm                       Model: VPM-B
+ 
+Description:    TRIMIX DIVE TO 80 MSW                                                 
+ 
+Gasmix Summary:                        FO2    FHe    FN2
+                          Gasmix # 1  0.150  0.450  0.400
+                          Gasmix # 2  0.360  0.000  0.640
+                          Gasmix # 3  1.000  0.000  0.000
+ 
+ 
+                                    DIVE PROFILE
+ 
+Seg-  Segm.  Run   | Gasmix | Ascent    From     To      Rate    | Constant
+ment  Time   Time  |  Used  |   or     Depth   Depth    +Dn/-Up  |  Depth
+  #   (min)  (min) |    #   | Descent  (mswg)  (mswg)  (msw/min) |  (mswg)
+----- -----  ----- | ------ | -------  ------  ------  --------- | --------
+  1     3.5    3.5 |    1   | Descent     0.     80.      23.0   |
+  2    26.5   30.0 |    1   |                                    |    80.
+ 
+ 
+                               DECOMPRESSION PROFILE
+ 
+          Leading compartment enters the decompression zone at   64.8 mswg
+                 Deepest possible decompression stop is   63.0 mswg
+ 
+Seg-  Segm.  Run   | Gasmix | Ascent   Ascent   Col   |  DECO   STOP   RUN
+ment  Time   Time  |  Used  |   To      Rate    Not   |  STOP   TIME   TIME
+  #   (min)  (min) |    #   | (mswg) (msw/min)  Used  | (mswg)  (min)  (min)
+----- -----  ----- | ------ | ------ --------- ------ | ------  -----  -----
+  3     2.6   32.6 |    1   |   54.    -10.0          |
+  4     0.4   33.0 |    1   |                         |    54      1     33
+  5     0.3   33.3 |    1   |   51.    -10.0          |
+  6     0.7   34.0 |    1   |                         |    51      1     34
+  7     0.3   34.3 |    1   |   48.    -10.0          |
+  8     0.7   35.0 |    1   |                         |    48      1     35
+  9     0.3   35.3 |    1   |   45.    -10.0          |
+ 10     1.7   37.0 |    1   |                         |    45      2     37
+ 11     0.3   37.3 |    1   |   42.    -10.0          |
+ 12     1.7   39.0 |    1   |                         |    42      2     39
+ 13     0.3   39.3 |    1   |   39.    -10.0          |
+ 14     1.7   41.0 |    1   |                         |    39      2     41
+ 15     0.3   41.3 |    1   |   36.    -10.0          |
+ 16     2.7   44.0 |    1   |                         |    36      3     44
+ 17     0.3   44.3 |    1   |   33.    -10.0          |
+ 18     1.7   46.0 |    2   |                         |    33      2     46
+ 19     0.3   46.3 |    2   |   30.    -10.0          |
+ 20     0.7   47.0 |    2   |                         |    30      1     47
+ 21     0.3   47.3 |    2   |   27.    -10.0          |
+ 22     1.7   49.0 |    2   |                         |    27      2     49
+ 23     0.3   49.3 |    2   |   24.    -10.0          |
+ 24     2.7   52.0 |    2   |                         |    24      3     52
+ 25     0.3   52.3 |    2   |   21.    -10.0          |
+ 26     3.7   56.0 |    2   |                         |    21      4     56
+ 27     0.3   56.3 |    2   |   18.    -10.0          |
+ 28     3.7   60.0 |    2   |                         |    18      4     60
+ 29     0.3   60.3 |    2   |   15.    -10.0          |
+ 30     6.7   67.0 |    2   |                         |    15      7     67
+ 31     0.3   67.3 |    2   |   12.    -10.0          |
+ 32     7.7   75.0 |    2   |                         |    12      8     75
+ 33     0.3   75.3 |    2   |    9.    -10.0          |
+ 34    12.7   88.0 |    2   |                         |     9     13     88
+ 35     0.3   88.3 |    2   |    6.    -10.0          |
+ 36    12.7  101.0 |    3   |                         |     6     13    101
+ 37     1.0  102.0 |    3   |    3.     -3.0          |
+ 38    22.0  124.0 |    3   |                         |     3     23    124
+ 39     1.0  125.0 |    3   |    0.     -3.0          |
+ 

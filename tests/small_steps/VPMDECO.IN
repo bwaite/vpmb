@@ -1,0 +1,28 @@
+TRIMIX DIVE TO 260 FSW !Description of dive
+1                      !Number of gas mixes
+.15,.45,.40            !Fraction O2, Fraction He, Fraction N2
+1                      !Profile code 1 = descent
+0,260,75,1,.7          !Starting depth, ending depth, rate, gasmix, setpoint
+2                      !Profile code 2 = constant depth
+260,30,1,1.3           !Depth, run time at end of segment, gasmix, setpoint
+99                     !Profile code 99 = decompress
+2                      !Number of ascent parameter changes
+260,1,-30,5,1.6       !Starting depth, gasmix, rate, step size,setpoint
+20,1,-10,20,1.6        !Starting depth, gasmix, rate, step size,setpoint
+1                      !Repetitive code 1 = repetitive dive to follow
+60                     !Surface interval time in minutes
+TRIMIX DIVE TO 260 FSW !Description of dive
+3                      !Number of gas mixes
+.15,.45,.40            !Fraction O2, Fraction He, Fraction N2
+.36,.00,.64            !Fraction O2, Fraction He, Fraction N2
+1.0,.00,.00            !Fraction O2, Fraction He, Fraction N2
+1                      !Profile code 1 = descent
+0,260,75,1,0           !Starting depth, ending depth, rate, gasmix
+2                      !Profile code 2 = constant depth
+260,30,1,0             !Depth, run time at end of segment, gasmix
+99                     !Profile code 99 = decompress
+3                      !Number of ascent parameter changes
+260,1,-30,10,0         !Starting depth, gasmix, rate, step size
+110,2,-30,10,0         !Change depth, gasmix, rate, step size
+20,3,-10,20,0          !Change depth, gasmix, rate, step size
+0                      !Repetitive code 0 = last dive/end of file

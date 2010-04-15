@@ -1,0 +1,14 @@
+&Program_Settings
+Units='msw'
+Altitude_Dive_Algorithm='ON'
+Minimum_Deco_Stop_Time=1.000000
+Critical_Radius_N2_Microns=0.600000
+Critical_Radius_He_Microns=0.500000
+Critical_Volume_Algorithm='ON'
+Crit_Volume_Parameter_Lambda=7500.000000
+Gradient_Onset_of_Imperm_Atm=8.200000
+Surface_Tension_Gamma=0.017900
+Skin_Compression_GammaC=0.257000
+Regeneration_Time_Constant=20160.000000
+Pressure_Other_Gases_mmHg=102.000000
+/

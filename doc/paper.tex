@@ -1,0 +1,1145 @@
+% Dedicated to _why the lucky stiff, wherever on the net you may be
+\documentclass[12pt]{article}
+\usepackage{color}
+\usepackage{hyperref}
+\usepackage{mdwlist}
+\usepackage{longtable}
+\usepackage{ulem}
+\usepackage{listings}
+\usepackage{glossary}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphics}
+
+\usepackage{courier}
+ \lstset{
+         basicstyle=\footnotesize\ttfamily, % Standardschrift
+         %numbers=left,               % Ort der Zeilennummern
+         numberstyle=\tiny,          % Stil der Zeilennummern
+         %stepnumber=2,               % Abstand zwischen den Zeilennummern
+         numbersep=5pt,              % Abstand der Nummern zum Text
+         tabsize=2,                  % Groesse von Tabs
+         extendedchars=true,         %
+         breaklines=true,            % Zeilen werden Umgebrochen
+         keywordstyle=\color{red},
+                frame=b,
+ %        keywordstyle=[1]\textbf,    % Stil der Keywords
+ %        keywordstyle=[2]\textbf,    %
+ %        keywordstyle=[3]\textbf,    %
+ %        keywordstyle=[4]\textbf,   \sqrt{\sqrt{}} %
+         stringstyle=\color{white}\ttfamily, % Farbe der String
+         showspaces=false,           % Leerzeichen anzeigen ?
+         showtabs=false,             % Tabs anzeigen ?
+         xleftmargin=17pt,
+         framexleftmargin=17pt,
+         framexrightmargin=5pt,
+         framexbottommargin=4pt,
+         %backgroundcolor=\color{lightgray},
+         showstringspaces=false      % Leerzeichen in Strings anzeigen ?
+ }
+    %\DeclareCaptionFont{blue}{\color{blue}}
+
+  %\captionsetup[lstlisting]{singlelinecheck=false, labelfont={blue}, textfont={blue}}
+  \usepackage{caption}
+\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox[cmyk]{0.43, 0.35, 0.35,0.01}{\parbox{\textwidth}{\hspace{15pt}#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white, singlelinecheck=false, margin=0pt, font={bf,footnotesize}}
+
+
+\normalem
+\hypersetup{colorlinks=true, linkcolor=blue, filecolor=blue, pagecolor=blue, urlcolor=blue}
+\makeglossary
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\large{\textbf{Carleton University}\\
+\textbf{COMP 4905 Honours Project}\\
+\textbf{Real Time Decompression Algorithms}\\
+\textbf{Author: Bryan Waite}\\
+\textbf{SN:100647326}\\
+\textbf{\color{blue}\uline{\href{mailto:bryanwaite@gmail.com}{bryanwaite@gmail.com}}}\\
+\textbf{\color{blue}\uline{\href{http://thesiteiwillonedayhave.com/}{http://thesiteiwillonedayhave.com/}}}\\
+\textbf{Supervisor: Dr. Pat Morin}\\
+\textbf{Department of Computer Science}}\\
+\date{\today}
+
+\vfill
+%\includegraphics{cc_by_30.pdf}
+%\includegraphics{cc_sa_30.pdf}\\
+This work is licensed under the Creative Commons Attribution-Share Alike 2.5 Canada License \\
+\includegraphics{cc_by_sa.png}
+\end{center}
+\end{titlepage}
+
+%\maketitle
+\newpage
+
+\section*{Abstract}
+\small{This paper outlines two implementations of the VPM-B dive algorithm: a reference implementation for
+  generating dive tables, and a proof of concept real-time decompression algorithm, suited for
+  use in a dive computer.
+
+  The VPM-B decompression algorithm is one of most common decompression models in use today, but most
+  implementations are closed source, preventing divers from verifying the algorithm implementation and related code
+  is correct. By providing these algorithms under an open license, it could improve the safety of dive
+  computers, and reduce the cost it takes to produce them.
+
+  The implementations of the algorithm provided allow divers to create dive tables ahead of the dive, and
+  do a simulation of a real time dive, which is the first step to creating an open dive computer.
+}
+
+
+\newpage
+
+\section*{Acknowledgments}
+Thanks to Pat Morin, and Erik C. Baker for making this project possible.
+
+\newpage
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+%\listoftables
+\listofalgorithms
+
+\newpage
+
+\section{Introduction}
+
+ Decompression sickness is one of the most dangerous things that can happen to a diver. It can cause joint pain,
+ skin itching and swelling, breathing difficulties, neurological problems, and death. But, because diving
+ is needed for many types of jobs, and is a popular hobby, over a hundred years of research has gone into making
+ it as safe as possible\cite{haldane07}.
+
+ Today, there are many algorithms used to help divers safely avoid decompression sickness. They can either be
+ used to calculate dive tables, which allow the diver to match their dive profile to a decompression schedule,
+ or be used in a dive computer, which track the time and depth of the dive in real time, and use that information
+ to calculate the decompression schedule. While there are already programs that can be used to generate the
+ dive tables\footnote{VPMOpen {\color{blue}\uline{\href{http://webspace.webring.com/people/fv/vpmopen/}{http://webspace.webring.com/people/fv/vpmopen/}}}\\ and the original VPM-B program by Erik Baker \\{\color{blue}\uline{\href{ftp://decompression.org/Baker/VPM-B\%20Fortran\%20Source\%20Code.txt}{ftp://decompression.org/Baker/VPM-B\%20Fortran\%20Source\%20Code.txt}}} are two such examples}, the only programs that do real time analysis for decompression are proprietary,
+embedded systems for dive computers. The closed nature of these systems means that they may not be following
+the algorithm correctly, or other bugs in the system may make them less reliable than they could be, putting
+the safety of divers at risk.
+
+Creating an open implementation of a modern decompression algorithm could make diving much safer, and
+provide divers with software that could be shown to be safe. This report outlines the design and implementation
+of a proof of concept implementation of the VPM-B\glossary{name={VPM}, description={Varying Permeability Model}} algorithm, in the hopes that it can provide a base on
+which to build production quality software and hardware for an open dive computer.
+
+\section{Background}
+
+This section provides a basic introduction to scuba diving, and what you need to know about decompression, to
+help readers understand what will be discussed in this paper. 
+When you scuba dive, you breath in compressed gasses \footnote{Often air, but other gas mixes are used
+for more complicated dives}. These gas mixes contain oxygen, and almost always other gasses \footnote{Pure oxygen
+is usually not used for safety reasons(Oxygen Toxicity)}. Nitrogen and Helium are the most commonly used
+other gasses, and when you breathe them under pressure, they start to form bubbles in body tissues. If the diver rises to quickly to the surface, these bubbles will expand, and can cause many serious medical problems, including death. This can
+be avoided if the diver rises to specific depths, and waits a certain amount of time for the gasses to leave the
+tissue (offgassing). Due to the risk, many models have been created that allow divers to calculate the depth and
+time required to safely decompress before returning to the surface. The VPM-B algorithm is one such model that
+has been chosen for this project, based on the large amount of documentation, and availability of example code.
+
+\subsection{The VPM-B Algorithm}
+
+ The VPM-B algorithm is a refinement of the original VPM algorithm created by D.E. Yount. VPM was developed
+in the mid 1980s at the University of Hawaii, because new research had shown that many previous dive models
+were wrong in their understanding of the forming of bubbles in body tissues\cite{yount86}. This model
+proved to be more accurate than the ones that came before it, and has further been refined by others
+into the VPM-B algorithm, that is implemented in the programs.
+
+\subsubsection{VPM}
+ The VPM algorithm starts by adopting a model of body tissues developed by Albert A. B\"uhlmann. This model
+uses 16 tissue compartments to model the effect the dissolved gasses have on human tissue. During the
+normal part of the dive, gas is added to the compartments\cite{Buhlmann84} (on-gassing\glossary{name={On-Gassing}, description={The process of adding inert gasses to body tissues}}), and during the final ascent,
+they're released from the tissue (off-gassing\glossary{name={Off-Gassing}, description={The process of releasing inert gasses from body tissues}}). Many different compartments are needed because different
+tissues absorb and release gasses at different rates (as evidenced by the Helium\_Half\_Time and
+Nitrogen\_Half\_Time arrays in the program).
+
+ Yount modifies this model by adding a bubble to each compartment. These bubbles are able to grow and
+shrink based on the pressure of the gasses dissolved in the tissues and the pressure of the gas within the
+bubble. By tracking this, along with the normal B\"uhlmann compartments, we are able to make better
+predictions about the decompression.
+
+Because the Yount bubbles are permeable (gasses can move into the bubble if the pressure in the compartment
+is greater than the pressure inside the bubble), we know that we can keep the bubble from growing if we
+ensure the compartment pressure never exceeds the bubble pressure. And, that's the basics of how to calculate
+an ascent. On the downside, its much too conservative, and you'll spend far longer in the water than you need
+to.
+
+To reduce the time decompressing without increasing the danger, the Critical Volume Algorithm is applied
+during the ascent. The CVA\glossary{name={CVA}, description={Critical Volume Algorithm, the algorithm that allows the VPM algorithm to give decent decompression times.}} can't reduce the time of a ``no bubble growth'' ascent, but it can limit
+the growth of the bubbles to a safe amount. This is done by calculating a ``no bubble growth'' ascent,
+and then applying the CVA iteratively until the ascent is judged safe.
+
+\subsubsection{VPM-B}
+
+ We now explain what the ``B'' in VPM-B is for. When divers work at extreme
+depths (over 300 feet seems to be the range), the ascent starts to become too aggressive. The standard VPM
+algorithm, when compared to other decompression algorithms, gives a much shorter decompression time. To help account
+for this, Boyle's Law is used to make the ascent more conservative. When calculating the
+decompression stops, the bubble radius in each compartment is increased by an amount predicted by Boyle's Law,
+and the allowed compartment tension at the next stops is lowered due to the increased radius. This
+lengthens the stop time, and makes the algorithm safer for more complicated dives.
+
+\section{Motivation}
+
+The proprietary nature of existing dive computers prevents the verification of the implementation of
+the dive algorithms being used. In some cases, the computer uses a proprietary model as well, which
+makes it even harder to prove that the system is calculating a safe decompression. Since open source
+software can be checked and improved by far more programmers than most companies can afford to hire,
+it has the potential to be safer, and more feature complete than existing implementations.
+
+One of the most popular and well researched decompression algorithms today is the VPM-B algorithm\footnote{There are others like the ``Reduced gradient bubble model'', and the ``B\"uhlmann decompression algorithm'', but VPM-B was chosen due to the significant amount of documentation available}. While there are existing programs that can generate the
+decompression tables, there didn't appear to be any open source implementations of the algorithm for use in real
+time systems, like dive computers. This means that the software of available dive computers can't be verified to
+ensure that it is bug free, and correctly implements the algorithm.
+
+For this honours project, two open source implementations of the algorithm VPM-B algorithm were written. A version designed to be
+usable in a desktop setting to serve as a reference implementation, and allow the user to generate decompression
+tables, and a version able to work on an embedded computer, and do real time measurements of depth and time, to
+build accurate models of the gasses in a divers system. Furthermore, these implementations are released under the
+``Simplified BSD License''\glossary{name={BSD License}, description={A family of software licenses that allow the use
+of the code in open source or proprietary software}}, which allows them to be used in a proprietary or open source dive computer. While
+this does allow a company to simply take the code, modify it, and use it in their product without
+giving back the changes, it is an acceptable compromise to it not being used at all, because it is under
+a more restrictive license.
+
+\section{Method}
+
+
+
+ The first step was to learn how the VPM-B algorithm worked. The papers of Erik C. Baker \footnote{Baker was responsible for a helping to bring together the many different
+parts of the algorithm into a complete model, adding the Boyle's Compensation, and writing a complete FORTRAN implementation of the program.} proved invaluable, but what helped the most was reading and porting the original VPM-B
+program by Baker to the Python\glossary{name={Python}, description={A programming language, designed to be easy to read and write, with many
+modern programming features}} programming language. Since the papers often focused on specific parts of the
+algorithm, stepping through the program to see how all these pieces fit together proved to be much more helpful.
+
+ Once the Python version was up and running, it was time to make many changes to the code to make it more
+in line with the programming practices taught at Carleton University. The original program was written for FORTRAN 77,
+and followed many of the practices common to FORTRAN\glossary{name={FORTRAN}, description={A programming language, popular with scientific researchers, but
+not often taught to programmers these days}} programs (GOTOs, global state used for all long term storage,
+custom file formats for input data), which would be very hard for modern day programmers to follow. The program
+was made object oriented\footnote{There are definite instances of the ``God Object'' anti-pattern, but at least the state is encapsulated, and in a position to be refactored}, by ensuring that all the global state was encapsulated in a DiveState object, and all functions that would modify this state belonged to the object.
+The GOTOs were turned into normal loops with break statements, extremely long functions were broken into smaller
+pieces, and repeating code was extracted to stand alone methods. Finally,  the input and output file formats were changed
+to use JSON\glossary{name={JSON}, description={JavaScript Object Notation, a lightweight data representation language
+designed to be easier to write than XML}}
+, as it is a standard format like XML\glossary{name={XML}, description={Extensible Markup Language, a language used
+to structure data for easy computer reading and writing}}, that is supported by just about every programming language \footnote{though not for FORTRAN, so a translator was written to let the original program load the new input files}.
+
+ Now that the Python program was finished, the port to C\glossary{name={C}, description={A programming language, designed for small size, and fast execution, which is 
+well suited for embedded systems}}
+ was started. This was fairly straightforward, but it did involve
+much more work to load JSON files than the Python version\footnote{The Python parser can turn it 
+directly into hash-tables and arrays, while the C version
+needs load values into the structures one at a time}. The port also showed a few bugs in the rarely run parts
+of the Python program, that ended up being caught by the static type checks.
+
+The highest priority with the C version was safety. Since C lacks much of the safety of languages
+like Java and Python \footnote{No array bounds checking, buffer overflows, no exceptions when dividing by 0, etc.}, more
+external tools were required to ensure things were working. Turning on all the compiler warnings and the stack
+smashing protection of gcc, caught many small issues, and invalid array accesses. Using Valgrind helped to find
+to check for memory leaks, double frees, and uses of uninitialized memory. One issue not caught, was the use
+of the ``abs'' function, which only takes the absolute value of integers, instead of ``fabs'' when the absolute value of floats was needed. This caused the floats to be casted to integers, and the bug had to be caught the old fashioned way.
+
+\section{Input File Format}
+
+Since the input file is responsible for all the behaviour of the programs, it was given its own section.
+
+JSON was used to represent the data as it allows the user to easily structure data without the difficulties writing of XML by hand, and it allows easy transfer from a web browser to a server, which is important if someone would like to make a web application
+using the Python program. An example input file is attached as appendix\ref{inputfile}.
+
+By using JSON, we are saved from writing a parser for another custom file format. It's also
+simple enough to work with that it only took an hour to write a short script to generate valid
+configuration files for the original program by Baker.
+
+The output of the program is also JSON, which can be easy turned into other formats
+\footnote{HTML is the only one implemented right now, but other formats like \LaTeX  and ASCII style tables should be doable with minimal effort},
+ can be saved as part of a dive history, or used for regression testing. This makes testing changes to the algorithm
+much easier than it is for the original program, where the only output was an ASCII table, that had to be compared
+manually by the programmer.
+
+\section{The Program}
+
+This is a somewhat high level overview of how the program works. It's here to provide a more
+detailed explanation of the VPM-B algorithm in practice. While you can't implement a working program
+just from the pseudocode, it gives a much more detailed explanation of the algorithm than is usually
+found in papers, and provides a good stepping stone to understanding the program. Many of the functions
+and variables will be referred to in brief, but are explained in detail in the appendices.
+
+\subsection{Preplanned Dive}
+
+ First we initialize and check the validity of the data (initialize\_data, and validate\_data respectively) loaded from
+the input file.
+ After this, we iterate over the dive profiles, setting the gas mixes to be used. From here there's two main parts of the dive: the main profile, detailing the descents, ascents, and time spent at constant depth, and the decompression loop,
+which calculates the decompression stops. Last, if there are more dives to be done, calculate the time spent at the
+surface, and account for the decompression that takes place there.
+
+\begin{algorithm}
+\caption{Main Program Loop}
+\label{pre1}
+\begin{algorithmic}
+\STATE initialize\_data()
+\STATE validate\_data()
+\FOR{$i=0$ to number\_of\_dives}
+\STATE set\_gas\_mixes(dive[i])
+\STATE profile\_code\_loop(dive[i])
+\STATE decompression\_loop(dive[i])
+\IF{more dives to be done}
+\STATE Calculate decompression over time at the surface
+\ENDIF
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Dive Profile Loop}
+
+The dive profile loop is concerned with the parts of the dive where you'll be ascending or descending.
+The GAS\_LOADINGS\_ASCENT\_DESCENT function uses the Schreiner(\ref{par:schreiner}) equation is used to calculate the change in pressure in the B\"uhlmann compartments, over the average rate of depth change. In the case of descents, the
+increasing pressure means we need to calculate the crushing pressure to see if the bubbles we've placed in the
+compartments have shrunk.
+
+If the diver is staying at a constant depth, the GAS\_LOADINGS\_CONSTANT\_DEPTH function uses the
+Haldane equation to calculate the pressure change over the amount of time spent at that depth. We continue this
+loop until the diver is ready to decompress, then exit, and calculate the decompression schedule.
+
+\begin{algorithm}
+\caption{Dive Profile Loop}
+\label{pre2}
+\begin{algorithmic}
+\FOR{$i=0$ to number\_of\_dive\_profiles}
+\IF{Ascent or Descent profile}
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Starting\_Depth, Ending\_Depth, Rate)
+\IF{Descent}
+\STATE CALC\_CRUSHING\_PRESSURE(Starting\_Depth, Ending\_Depth, Rate)
+\ENDIF
+\ELSIF{Constant depth profile}
+\STATE GAS\_LOADINGS\_CONSTANT\_DEPTH(Depth, Profile\_End\_Time)
+\ELSE
+\STATE break
+\ENDIF
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Decompression Loop}
+
+At this point the decompression calculations start. We start by calculating the Nuclear Regeneration, which
+is only really needed for saturation dives, and won't be discussed in detail here. CALC\_INITIAL\_ALLOWABLE\_GRADIENT
+is used to find the gradients used to set the decompression ceiling. If the critical volume loop is disabled,
+then those values will be used to determine the schedule, otherwise, the critical volume loop will relax
+the values to create a less conservative schedule.
+
+ CALC\_START\_OF\_DECO\_ZONE, as the name implies, finds the depth where decompression can start
+to take place. GAS\_LOADINGS\_ASCENT\_DESCENT is then given the depth of the start of the decompression
+zone to initialize the compartments to the pressures needed for the critical\_volume\_loop.
+
+\begin{algorithm}
+\caption{Decompression Loop}
+\label{pre3}
+\begin{algorithmic}
+\STATE NUCLEAR\_REGENERATION(Run\_Time)
+\STATE CALC\_INITIAL\_ALLOWABLE\_GRADIENT()
+\STATE CALC\_START\_OF\_DECO\_ZONE(Starting\_Depth, Rate)
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Depth, Depth\_Start\_of\_Deco\_Zone, Rate)
+\STATE critical\_volume\_loop()
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Critical Volume Loop}
+
+Here we have two choices. In the normal case, the program loops until the difference of the
+current phase volume time is less than or equal to a minute different from the last phase volume time. This involves
+repeatedly calling the CRITICAL\_VOLUME function on the current schedule until this condition is met. If the
+diver has turned off the critical volume algorithm, the code in the loop will only run once, and then
+the schedule will be calculated.
+
+CALC\_ASCENT\_CEILING() will find the safe ascent depth for each of the compartments, and return the deepest
+one. PROJECTED\_ASCENT will simulate an ascent from the current depth to make sure the decompression ceiling
+won't be violated by gas loading during ascent. If it is, then the stop depth can be made deeper to keep
+things safe.
+
+It's possible that the we won't need to do any decompression stops at this point. If the Deco\_Stop\_Depth
+is 0.0, then we can just ascend to the surface, and end the dive.
+
+We now enter a loop that computes a decompression schedule for the in water part of the dive \footnote{Remember, you
+continue to decompress when you get out of the water}. This is not the final schedule, it's just setting a few more
+variables before we either generate the final schedule (if the critical volume algorithm is off, or the
+schedule is converged), or we apply the CRITICAL\_VOLUME algorithm, and repeat the loop.
+
+\begin{algorithm}
+\caption{Critical Volume Loop}
+\label{pre4}
+\begin{algorithmic}
+\WHILE{true}
+\STATE CALC\_ASCENT\_CEILING()
+\STATE PROJECTED\_ASCENT(Depth\_Start\_of\_Deco\_Zone, Rate, Step\_Size)
+\IF{Deco\_Stop\_Depth == 0.0}
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Starting\_Depth, Ending\_Depth, Rate)
+\STATE break
+\ENDIF
+\WHILE{true}
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Starting\_Depth, Deco\_Stop\_Depth, Rate)
+\IF{$Deco\_Stop\_Depth \leq 0.0$}
+\STATE    break
+\ENDIF
+\STATE BOYLES\_LAW\_COMPENSATION(First\_Stop\_Depth, Deco\_Stop\_Depth, Step\_Size)
+\STATE DECOMPRESSION\_STOP(Deco\_Stop\_Depth, Step\_Size)
+\ENDWHILE
+\IF{Schedule\_Converged or Critical\_Volume\_Algorithm\_Off}
+\STATE generate\_final\_schedule()
+\STATE break
+\ENDIF
+\STATE CRITICAL\_VOLUME(Deco\_Phase\_Volume\_Time)
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Generate Final Schedule}
+
+We've finally reached the point where the final decompression schedule is calculated. There are two steps
+to every iteration of this loop. First, we ascend to the Deco\_Stop\_Depth \footnote{Either the start of the
+decompression zone on the first iteration or the current depth minus the step size on the subsequent iterations} while
+calculating the change in compartment pressure. CALC\_MAX\_ACTUAL\_GRADIENT is then run
+to determine if the critical bubble radii need to be adjusted on repetitive dives.
+At this point, we output the ascent summary, telling the diver the depth to ascend to, and the time
+it should take based on their ascent rate.
+
+BOYLES\_LAW\_COMPENSATION is then run to determine the reduction in allowable
+gradients based on Boyle's Law, and will make the schedule more conservative for deeper dives.
+DECOMPRESSION\_STOP determines how long the diver must stay at the current stop, and reduces the
+pressure in the compartments.
+Finally, we output how long the diver needs to stay at the current depth.
+
+This loop is repeated until we finally reach the surface, at which point, return to the main loop.
+If the dive is done, we can exit, otherwise we're ready to calculate a repetitive dive.
+
+\begin{algorithm}
+\caption{Generate Final Schedule}
+\label{pre5}
+\begin{algorithmic}
+\WHILE{true}
+\IF{$Deco\_Stop\_Depth \leq 0.0$}
+\STATE  break
+\ENDIF
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Starting\_Depth, Deco\_Stop\_Depth, Rate)
+\STATE CALC\_MAX\_ACTUAL\_GRADIENT(Deco\_Stop\_Depth)
+\STATE output\_decompression\_profile\_ascent()
+\STATE BOYLES\_LAW\_COMPENSATION(First\_Stop\_Depth, Deco\_Stop\_Depth, Step\_Size)
+\STATE DECOMPRESSION\_STOP(Deco\_Stop\_Depth, Step\_Size)
+\STATE output\_decompression\_profile\_stop()
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Real-Time Dive}
+
+Now that we know how the dive tables are calculated, we can apply most of the same methods. However,
+since the data is provided in real time, we have to determine if the diver is ascending, descending
+or staying at a constant depth. In addition, if they are changing depths, the rate at which they
+do so is needed to perform certain calculations.
+
+Finally, for this proof of concept algorithm, there are a couple of restrictions for the
+decompression: first, the diver will have to signal that they want to decompress \footnote{by pushing a button
+on a real computer we'll assume}, and second, that they obey the decompression 
+schedule without skipping stops, or spending too
+little time at them. While more advanced dive computers are able to give a best effort estimation of how to
+continue the decompression schedule after a missed stop, there wasn't enough information about
+how to safely handle missed stops, so it has been left out rather than estimated.
+
+NOTE: This the algorithm used for \textbf{SIMULATED} dives. Since the hardware needed for real dives
+was unavailable it will likely need to be adjusted or even replaced based on what the realities are, 
+when doing real dives.
+
+\subsubsection{Real-Time Loop}
+
+First, if we're going to take real time measurements, we need to know how often to do so. This is
+determined by the ``increment\_time'' variable, which is set a some point before this is run.
+Then, every ``increment\_time'' that passes, update\_depth is run. This will read the new depth
+from the sensors (or, in this case, the simulation), and update the Depth and Rate variables.
+
+Next, there's two options: the normal dive (like the profile\_code\_loop) and the decompression (like
+the decompression\_loop). The algorithm starts out with the ``Decompressing'' variable set to false,
+and only when the diver signals that they want to end the dive, is it set to true.
+
+For the normal part of the dive we need to get the current direction to know which function(s)
+to call. This part is almost exactly like the profile\_code\_loop, so it won't be elaborated on here. The loop
+will continue to execute those until it is signaled (say, by the user pressing a button), that the
+dive is over, and they want to decompress.
+
+When we start the decompression, the first thing we do is calculate the entire decompression schedule, with calculate\_decompression\_stops().
+This is done by making a copy of the current dive state, and running the ``Decompression Loop''\ref{pre3},
+algorithm with the copy. The schedule generated by this is then saved in the decomp\_stops array,
+and used to inform the diver how to complete their decompression. We then run decompression\_init(), which
+runs ``Decompression Loop''\ref{pre3} and ``Critical Volume Loop''\ref{pre4}, which stops right before
+generate\_final\_schedule(). This sets up the dive state for the ascents we're about to do.
+
+After the preceding steps are done, we just have to follow the ascents and stops that were
+stored in decomp\_stops. If we have to ascend we calculate the gas loadings and max gradients.
+Then, when we reach the constant depth section, we run ``Generate Final Schedule''\ref{pre5}, but stop
+it at the current decompression stop depth, rather than continuing to ascend to the surface.
+
+\begin{algorithm}[H]
+\caption{Real Time Loop}
+\label{real1}
+\begin{algorithmic}
+\WHILE{not dive\_finished}
+\STATE update\_depth(increment\_time)
+\IF{Decompressing == FALSE}
+\STATE current\_direction = get\_current\_direction(increment\_time)
+\IF{current\_direction == ASCENT}
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Last\_Depth, Depth, Rate)
+\ELSIF{current\_direction == DESCENT}
+\STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Last\_Depth, Depth, Rate)
+\STATE CALC\_CRUSHING\_PRESSURE(Last\_Depth, Depth, Rate)
+\ELSE
+\STATE GAS\_LOADINGS\_CONSTANT\_DEPTH(Depth, Run\_Time + increment\_time);
+\ENDIF
+\ELSE
+\IF{decomp\_stops == NULL}
+\STATE calculate\_decompression\_stops()
+\STATE decompression\_init()
+\ELSE
+  \IF{$Depth \leq 0.0$}
+  \STATE dive\_finished = TRUE
+  \ELSIF{decomp\_stops[decomp\_stop\_index].ascent\_or\_const == ASCENT}
+  \STATE GAS\_LOADINGS\_ASCENT\_DESCENT(Last\_Depth, Depth, Rate)
+  \STATE CALC\_MAX\_ACTUAL\_GRADIENT(Deco\_Stop\_Depth)
+  \STATE calc\_decompression\_stop = TRUE
+  \ELSE
+ \IF{calc\_decompression\_stop == TRUE}
+ \STATE generate\_final\_schedule\_to\_depth(decomp\_stops[decomp\_stop\_index].depth - 0.1);
+ \STATE calc\_decompression\_stop = FALSE;
+ \ENDIF
+\ENDIF
+\ENDIF
+\ENDIF
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\section{Results}
+
+The Python version produces almost the same results as the FORTRAN version (the numbers can be a bit
+different due to differences in the way floating point numbers are handled). The program is also
+shorter than the original (2583 lines vs. 3761), and follows more modern programming principles
+(no global state, no GOTOs, and is somewhat Object Oriented). In addition, the input file format
+is now not dependent on a language specific, input file parser, and the output can now be
+formatted as HTML, which should be easier for non-technical people to read than ASCII text tables.
+
+The C version is, while not as full featured, a good proof of concept, and starting point towards
+developing full featured, open source, dive computer software. It is currently faster than the
+FORTRAN program (0.037 seconds vs. 0.081 on the test machine), and there are many more C compilers for
+embedded systems, than FORTRAN compilers, which would help porting.
+
+The program and its documentation will be hosted at \\{\color{blue}\uline{\href{http://thesiteiwillonedayhave.com/vpmb}{http://thesiteiwillonedayhave.com/vpmb}}}, which will also include links to whatever service is currently
+providing hosting for the source control system.
+
+\section{Future Improvements}
+
+One of the obvious improvements would be a GUI for the program, so that less technical users could
+generate their own dive tables. Since Python is used for a number of popular web frameworks,
+it should be fairly simple to design a web application that forms the JSON for the user,
+and then submits the configuration to the server, where it can be given to the DiveState
+object, and used to process the results. Then, the output JSON can be sent back to the user
+and turned into HTML\footnote{And, if things go according to plan, you should be able to try this
+out by May 1st 2010 at, {\color{blue}\uline{\href{http://thesiteiwillonedayhave.com/diving}{http://thesiteiwillonedayhave.com/diving}}}}.
+
+Changing the floating point values to fixed point values could make rounding errors less of a problem,
+and allow the program to be ported to processors that don't have floating point support (which includes
+a lot of micro-controllers, and other low power, low cost processors).
+
+A better way of handling errors needs to be worked out. Right now, the failure() function is simply
+called on various errors, which is set to exit the program. This works for generating dive tables,
+but is obviously unacceptable for real time dives. Errors should be classified by how serious
+they are, and appropriate actions taken in response\footnote{Perhaps by just reloading some data
+from the current state and retrying the failed operation}.
+
+The ``simulation'' of diving is not nearly close enough to the real world (the diver ends
+up going to exact depths, and staying perfectly at that level, never bobbing up and down). Introducing
+some randomness and simulating measurements to the precision of common depth sensors, as well as
+finding a good heuristic for what is a constant depth would make it much better suited for real world use.
+
+The C program is not currently saving output, like time, depth, water temperature, etc. This should be
+done so the diver can later get a history of their dive. Preferably this would be stored in some
+sort of open format so that a database of dives can be built up, and used to regression test the
+program, or compare it with other implementations of the algorithm.
+
+Altitude diving isn't supported in the C program simulation. Most dive computers that support it
+have an altimeter built in, and are turned on at the altitude the diver is acclimatized to. Then
+they wear it until they reach the altitude the dive will take place at, and the computer uses that
+information to alter the starting values for that altitude. The program could also allow the user
+to manually enter the altitude and how long they've spent at it, if they forget to turn it on, or
+the device isn't configured with an altimeter.
+
+Currently, gas mix changes and step size changes aren't supported in the C program, as it was difficult
+to decide how it should be handled while doing a dive (User sets gas mixes ahead of time and manually changes
+to the one currently in use while diving, sets the gases with the depths/times they'll start using it and the
+computer automatically changes it, etc.). Currently it's fixed to the first gas mix in the table
+until a safe solution can be presented.
+
+Obviously, getting the hardware components needed for a computer together and actually building a reference
+hardware implementation, and testing the computer against other computers claiming to support the VPM-B
+algorithm would be a great way to check the real world performance of the code.
+
+Finally, just getting a lot of programmers to read the code, point out problems, and criticize the program
+ would be a great step in improving the quality of the code. Since C programs can suffer from
+vary strange and random bugs having other people help improve the program would go a long way towards making this
+as bug free, and feature complete as possible.
+
+\section{Conclusion}
+
+There's no doubt that dive computers significantly improve the safety of diving, and by making this code
+available, it should allow for the development of better, safer systems. It also helps let more
+people understand the algorithms they're trusting their lives to. While FORTRAN may have been the language
+of scientific computing, both C and Python seem to be more familiar to most programmers today. This should
+help the dive community as a whole, because more eyes on the code means fewer bugs, and a better understanding.
+While it would have been nice to have the dive hardware required for a real dive computer available for testing,
+the simulation provides a first step towards what could be the safest dive computer available.
+
+\newpage
+\section{References}
+\nocite{VPMforDummies}
+\bibliographystyle{plainnat}
+\bibliography{bib}
+\newpage
+
+\appendix
+
+\section{Input File Format}
+Input contains most of the dive information. It is an array of hashes that describe each dive by the diver.
+
+\subsection{Input}
+\subsubsection{Main Part}
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                 &  Type                         &  Description                                                          \\
+\hline
+ ``desc''             &  string                       &  description of the dive which will appear at the top of the output.  \\
+\hline
+ ``num\_gas\_mixes''  &  integer                      &  the number of gas mixes held in the ``gasmix\_summary'' array.       \\
+\hline
+ ``gasmix\_summary''  &  array[hash\{string:float\}]  &  gas mixes carried by the diver, in the order they will be used.      \\
+\hline
+\end{longtable}
+%\end{center}
+%\end{table}
+
+\paragraph{Gas Mixes}
+Note: Gas fractions must add up to 1.0 or the program will throw an error.
+%\begin{center}
+\begin{longtable}{|l|p{5cm}|p{5cm}|}
+\hline
+ Name                  &  Type                                                                                                &  Description  \\
+\hline
+   & hash\{string:float\}, ``fraction\_O2'', ``fraction\_He'' or ``fraction\_N2'' & Gas and the fraction of it within the tank  \\
+\hline
+\end{longtable}
+%\end{center}
+
+\subsubsection{Profiles}
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                &  Type         &  Description                                          \\
+\hline
+ ``profile\_codes''  &  array[hash]  &  descent, constant depth, and ascent to be performed  \\
+\hline
+\end{longtable}
+%\end{center}
+
+\paragraph{Ascent and Descent}
+
+If profile code is 1
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                 &  Type     &  Description                                         \\
+\hline
+ ``profile\_code''    &  integer  &  must be 1 for descent or ascent                               \\
+\hline
+ ``starting\_depth''  &  float    &  depth in FSW or MSW where the dive will be started  \\
+\hline
+ ``ending\_depth''    &  float    &  depth in FSW or MSW where the dive will stop        \\
+\hline
+ ``rate''             &  float    &  FSW/min or MSW/min the diver will descend at        \\
+\hline
+ ``gasmix''           &  integer  &  gasmix being used                                   \\
+\hline
+ ``setpoint''         &  float    &  no clue                                             \\
+\hline
+\end{longtable}
+%\end{center}
+
+\paragraph{Constant Depth}
+
+If profile code is 2
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                                 &  Type     &  Description                                                \\
+\hline
+ ``profile\_code''                    &  integer  &  must be 2 for constant depth                               \\
+\hline
+ ``depth''                            &  float    &  depth where the dive will take place                       \\
+\hline
+ ``run\_time\_at\_end\_of\_segment''  &  float    &  what time (in minutes) the dive at the ``depth'' will end  \\
+\hline
+ ``gasmix''                           &  integer  &  gasmix being used                                          \\
+\hline
+ ``setpoint''                         &  float    &  no clue                                                    \\
+\hline
+\end{longtable}
+%\end{center}
+
+\paragraph{Decompression}
+
+If profile code is 99
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                                        &  Type         &  Description                                                                          \\
+\hline
+ ``profile\_code''                           &  integer      &  must be 99 for ascent                                                                \\
+\hline
+ ``number\_of\_ascent\_parameter\_changes''  &  integer      &  number of changes during the ascent (a change would be the step size, rate, gasmix)  \\
+\hline
+ ``ascent\_summary''                         &  array[hash]  &  ascent profiles to be followed                                                       \\
+\hline
+\end{longtable}
+%\end{center}
+
+\subparagraph{Ascent Summary}
+Ascent summaries listing decompression gas mixes used, depths, and ascent rates.
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                 &  Type            &  Description                                                         \\
+\hline
+ ``starting\_depth''  &  float           &  depth where the ascent profile starts                               \\
+\hline
+ ``gasmix''           &  integer         &  gasmix summary being used                                           \\
+\hline
+ ``rate''             &  negative float  &  the rate of ascent in FSW/min or MSW/min (must be negative number)  \\
+\hline
+ ``step\_size''       &  float           &  distance between each decompression stop                            \\
+\hline
+ ``setpoint''         &  float           &  no clue                                                             \\
+\hline
+\end{longtable}
+%\end{center}
+
+\subsubsection{Repeat Dives}
+Indicate if the user will be diving again, if so, how much time is spent at the surface.
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+
+\hline
+ Name                                   &  Type    &  Description \\                                                         \hline
+ ``repetitive\_code''                  &  integer  &  do another dive (1), or stop (0)             \\
+\hline
+ ``surface\_interval\_time\_minutes''  &  float    &  time spent at surface before a repeat dive.  \\
+\hline
+\end{longtable}
+%\end{center}
+
+\subsection{Altitude}
+Information about the altitude the dive will be performed at.
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                                   &  Type    &  Description                                                                                                  \\
+\hline
+ ``Altitude\_of\_Dive''                 &  float   &  height in meters or feet the dive will occur at                                                              \\
+\hline
+ ``Diver\_Acclimatized\_at\_Altitude''  &  string  &  ``yes'', or ``no'', based on whether the diver has spent enough time at the altitude to become acclimatized  \\
+\hline
+ ``Starting\_Acclimatized\_Altitude''   &  float   &  altitude diver is acclimatized at                                                                            \\
+\hline
+ ``Ascent\_to\_Altitude\_Hours''        &  float   &  time in hours the diver took to get to the diving altitude                                                   \\
+\hline
+ ``Hours\_at\_Altitude\_Before\_Dive''  &  float   &  time the diver has spent at the altitude of the dive                                                         \\
+\hline
+\end{longtable}
+%\end{center}
+
+
+\subsection{Settings}
+
+General program settings that don't really belong anywhere else.
+
+%\begin{center}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name                                  &  Type                                                                                             &  Description                                                                              \\
+\hline
+ ``Units''                             &  string                                                                                           &  either ``fsw'' or ``msw'' if the dive is in feet of salt water, or meters of salt water  \\
+\hline
+ ``Altitude\_Dive\_Algorithm''         &  string                                                                                           &  ``ON'' or ``OFF'' based on whether we're doing an altitude dive.                         \\
+\hline
+ ``Minimum\_Deco\_Stop\_Time''         &  float                                                                                            &  minimum time the diver will spend at a decompression stop                                \\
+\hline
+ ``Critical\_Radius\_N2\_Microns''     &  float                                                             & Critical nitrogen bubble size                                                                                         \\
+\hline
+ ``Critical\_Radius\_He\_Microns''     &  float                                                               &  Critical helium bubble size                                                                                         \\
+\hline
+ ``Critical\_Volume\_Algorithm''       &  string  &  ``ON'' or ``OFF'' based on whether or not we want to run the critical volume algorithm                                                                                         \\
+\hline
+ ``Crit\_Volume\_Parameter\_Lambda''   &  float                                                                                            &  Determines the safe bubble growth limit (you probably don't want to touch it)                                                                                     \\
+\hline
+ ``Gradient\_Onset\_of\_Imperm\_Atm''  &  float                                                                                            &  Must be between 5 and 10, but you should probably leave it at the default 8.2                                                                                     \\
+\hline
+ ``Surface\_Tension\_Gamma''           &  float                                                                                            &  surface tension of the bubble                                                            \\
+\hline
+ ``Skin\_Compression\_GammaC''         &  float                                                                                            &  I think this is the ``skin'' of the bubble                                               \\
+\hline
+ ``Regeneration\_Time\_Constant''      &  float                                                                                            &  I think this is the time a bubble takes to return to its original size                   \\
+\hline
+ ``Pressure\_Other\_Gases\_mmHg''      &  float                                                                                            &  other gases (carbon dioxide, water vapor and oxygen).                                    \\
+\hline
+\end{longtable}
+%\end{center}
+
+\newpage
+\section{Example Input File}
+
+An example input file is provided so that it's easier for readers to match up
+the specification of the file format with a real example.
+
+\label{inputfile}
+\lstinputlisting[label=samplecode,caption=Example input file]{vpm_decompression_input.json}
+
+\newpage
+\section{Data Structures}
+
+This is not the complete set of data structures for a working dive program, just the minimum to help explain the
+pseudocode I've written. To see the complete data structure, you'll have to examine the DiveState structure
+in ``vpmb.py'' or the dive\_state structure in ``vpmb.h''.
+
+\subsection{Dive State}
+\begin{longtable}{|l|l|p{5cm}|}
+\hline
+ Name  &  Type  &  Description \\
+\hline
+Starting\_Depth & double & Starting depth for the current dive profile \\
+\hline
+Ending\_Depth & double &  Ending depth of the profile\\
+\hline
+Rate & double & Rate of depth change for ascents and descents. Either calculated in real time, or set ahead of time \\
+\hline
+Depth & double &  Current depth of the diver\\
+\hline
+Last\_Depth & double & Depth of the last iteration of the real dive time loop. \\
+\hline
+Profile\_End\_Time & double & The time the constant depth profile will end. Called Run\_Time\_End\_of\_Segment in implementations.\\
+\hline
+Run\_Time & double & Current run time of the dive \\
+\hline
+Depth\_Start\_of\_Deco\_Zone & double & Depth that the diver can decompress at \\
+\hline
+Step\_Size & double & After the first decompression stop, this determines the depths that the decompression stops will take place at. \\
+\hline
+Deco\_Stop\_Depth & double & During decompression, this is used to set the next stop the diver must ascend to. \\
+\hline
+First\_Stop\_Depth & double &  The depth the first decompression stop took place at.\\
+\hline
+Schedule\_Converged & boolean & Check to see if the Phase\_Volume\_Time is less than or equal to a minute difference from the Last\_Phase\_Volume\_Time. If true, we can stop running the Critical\_Volume\_Algorithm \\
+\hline
+Critical\_Volume\_Algorithm\_Off & boolean & Flag to tell us not to run the Critical\_Volume\_Algorithm. \\
+\hline
+Deco\_Phase\_Volume\_Time & double & Used when applying the Critical\_Volume\_Algorithm \\
+\hline
+Helium\_Pressure & double[16] & The B\"uhlmann compartments for helium. \\
+\hline
+Nitrogen\_Pressure & double[16] & The B\"uhlmann compartments for nitrogen. \\
+\hline
+*decomp\_stops & decompression\_stops & Array for storing the decompression stop depths, times, and directions, 
+calculated when the diver decides to decompress. \\
+\hline
+decomp\_stop\_index & int & Points to the current decompression stop in the decomp\_stops array. \\
+\hline
+
+\end{longtable}
+
+\newpage
+\section{Functions}
+
+Now that the required data structures are out of the way, its time to show how the functions operate
+on them to model the gas bubbles as described in the VPM-B Algorithm. Again, this only describes the
+functions mentioned in the pseudocode, not all the functions needed for a complete implementation
+of the algorithm.
+
+\subsection{initialize\_data}
+Initializes the data structure with the data loaded from the input file.
+
+\subsection{validate\_data}
+Checks that the data entered by the user is valid, and does a few unit conversions if necessary.
+
+
+\subsection{set\_gas\_ mixes}
+Takes the current dive configuration and sets the different gas mixes used by the diver in the 
+dive state object. Also makes sure the values entered by the user are valid.
+
+Parameters:
+\begin{verbatim}
+dive current_dive
+\end{verbatim}
+
+\subsection{HALDANE\_EQUATION}
+\label{par:haldane}
+
+Function for gas loading calculations at a constant depth. This is based on the derivations
+by Erik Baker\cite{baker_deriv}.
+
+Parameters:
+\begin{verbatim}
+double Initial_Gas_Pressure
+double Inspired_Gas_Pressure
+double Gas_Time_Constant
+double Interval_Time
+\end{verbatim}
+
+Returns:
+\begin{verbatim}
+double Pressure at end of Interval_Time
+\end{verbatim}
+
+The Haldane Equation derivations by Baker result in the formula $$P = P_0 + (P_I - P_0)(1 - e^{kt})$$
+where
+\begin{itemize}
+\item $ Initial\_Gas\_Pressure = P_0 $
+\item $ Inspired\_Gas\_Pressure = P_I$
+\item $ Gas\_Time\_Constant = k$
+\item $ Interval\_Time = t$
+\end{itemize}
+
+\subsection{SCHREINER\_EQUATION}
+\label{par:schreiner}
+Function for ascent and descent gas loading calculations. Also based on the derivations
+by Erik Baker\cite{baker_deriv} (Note: ascents must be given in negative numbers (ie: -10 for 10 feet up), as descents use positive values).
+
+Parameters:
+\begin{verbatim}
+double Initial_Inspired_Gas_Pressure
+double Rate_Change_Insp_Gas_Pressure
+double Interval_Time
+double Gas_Time_Constant
+double Initial_Gas_Pressure
+\end{verbatim}
+
+Returns:
+\begin{verbatim}
+double Pressure at time
+\end{verbatim}
+
+The Schreiner Equation derivations by Baker result in the formula $$P(t) = P_{Io} + R(t - 1 / k) - (P_{Io} − P_O − R / k) e^{kt}$$
+where
+\begin{itemize}
+\item $ Initial\_Inspired\_Gas\_Pressure = P_{Io}$
+\item $ Rate\_Change\_Insp\_Gas\_Pressure = R$
+\item $ Interval\_Time = t$
+\item $ Gas\_Time\_Constant = k$
+\item $ Initial\_Gas\_Pressure = P_O$
+\end{itemize}
+
+\subsection{GAS\_LOADINGS\_CONSTANT\_DEPTH}
+
+This function uses the HALDANE\_EQUATION (\ref{par:haldane}), to update the
+gas pressures (Helium\_Pressure and Nitrogen\_Pressure) for a time segment at constant depth.
+
+Parameters:
+\begin{verbatim}
+double Depth
+double Run_Time_End_of_Segment
+\end{verbatim}
+
+\subsection{GAS\_LOADINGS\_ASCENT\_DESCENT}
+
+This function uses the SCHREINER\_EQUATION (\ref{par:schreiner}), to update the
+gas pressures (Helium\_Pressure and Nitrogen\_Pressure) during an ascent or descent
+at a constant rate of change.
+
+Parameters:
+\begin{verbatim}
+double Starting_Depth
+double Ending_Depth
+double Rate
+\end{verbatim}
+
+\subsection{CALC\_CRUSHING\_PRESSURE}
+
+When descending, we have to compute the crushing pressure in each of the B\"uhlmann
+compartments to determine the maximum crushing pressure. This pressure can be used
+will be used during ascent to determine how much the bubbles in the compartments
+will grow, and determine how long the decompression takes.
+
+Parameters:
+\begin{verbatim}
+double Starting_Depth
+double Ending_Depth
+double Rate
+\end{verbatim}
+
+\subsection{NUCLEAR\_REGENERATION}
+
+Calculates the regeneration of the bubble radii that takes place over the dive time.
+This value will likely have very little impact (the time scale is in the \textit{weeks} range),
+but it is important for saturation dives.
+
+Parameters:
+\begin{verbatim}
+double Dive_Time
+\end{verbatim}
+
+\subsection{CALC\_INITIAL\_ALLOWABLE\_GRADIENT}
+
+This function calculates initial allowable gradients used to find the decompression
+ceiling on the first run of the decompression loop. These are the values that will
+be used if the critical volume algorithm is turned off. If the CVA is on, these
+values will be relaxed by the algorithm.
+
+
+\subsection{CALC\_START\_OF\_DECO\_ZONE}
+
+This function finds the deepest depth that the diver can start to
+decompress at. This is done by using a bisection method from 
+``Numerical Recipes in Fortran 77''. If the value cannot be found 
+after the set number of iterations have run, the function raises an error.
+
+
+Parameters:
+\begin{verbatim}
+double Starting_Depth
+double Rate
+\end{verbatim}
+
+\subsection{CALC\_ASCENT\_CEILING}
+
+This function finds the safe ascent depth for each compartment, and then takes the deepest ascent ceiling, and sets
+it as the Ascent\_Ceiling\_Depth.
+
+\subsection{PROJECTED\_ASCENT}
+
+This simulates the ascent before doing it, to make sure that a deco ceiling won't be violated because of
+an unusual gas loading during ascent. If it is, we lower the ascent ceiling until it's safe.
+
+
+Parameters:
+\begin{verbatim}
+double Starting_Depth
+double Rate
+double Step_Size
+\end{verbatim}
+
+
+\subsection{BOYLES\_LAW\_COMPENSATION}
+
+Boyle's law describes the inverse relationship
+of pressure and volume within a closed system\cite{Giancoli05}. In this algorithm, it's used to increase the bubble size (by calculating the decrease in pressure between the current stop and the next)
+in the compartment, to make the decompression more conservative, especially at extreme depths.
+
+\begin{verbatim}
+double First_Stop_Depth
+double Deco_Stop_Depth
+double Step_Size
+\end{verbatim}
+
+
+\subsection{DECOMPRESSION\_STOP}
+
+Calculate the required time at each decompression stop, given the decompression stop depth
+and the step size between decompression stops.
+
+Parameters:
+\begin{verbatim}
+double Deco_Stop_Depth
+double Step_Size
+\end{verbatim}
+
+
+\subsection{CRITICAL\_VOLUME}
+
+The critical volume algorithm is a way of removing some of the conservatism from the decompression ascent while not
+increasing the danger. Normally, a safe ascent aims for a not growing the bubbles in the compartment. Since this
+requires very long stops, the critical volume algorithm aims to limit the bubble growth to a safe amount, Crit\_Volume\_Parameter\_Lambda, which is set in the input file.
+
+Parameters:
+\begin{verbatim}
+double Deco_Phase_Volume_Time
+\end{verbatim}
+
+
+\subsection{CALC\_MAX\_ACTUAL\_GRADIENT}
+This function is similar to the CALC\_CRUSHING\_PRESSURE algorithm, in that, it calculates
+a maximum gradient across all compartments. When the final schedule is being calculated
+this function is run so that on a repetitive dive, the algorithm can decide if the
+critical bubble radii need to be adjusted to account for gasses still within the 
+tissue compartments. If there are no more dives to be done, this value will not be used.
+
+Parameters:
+\begin{verbatim}
+double Deco_Stop_Depth 
+\end{verbatim}
+
+\subsection{output\_decompression\_profile\_ascent}
+Writes out the current depth, the depth to ascend to, and how long this should take.
+
+\subsection{output\_decompression\_profile\_stop}
+Writes out the current depth, and how long the diver should stay at that depth.
+
+\subsection{update\_depth}
+In a real dive computer, this would read the current Depth, and then update the average
+rate ascent or descent. In the simulation, this just takes the given rate, and sets
+the Depth to $Depth + increment\_time * Rate$. In either case, the previous depth is
+stored in Last\_Depth, so that the direction the diver is moving can be calculated.
+
+Parameters:
+\begin{verbatim}
+double increment_time
+\end{verbatim}
+
+\subsection{get\_current\_direction}
+Determine the direction the diver is traveling, (or if they're staying at a constant depth) and return it.
+
+Parameters:
+\begin{verbatim}
+double increment_time
+\end{verbatim}
+
+Returns:
+\begin{verbatim}
+enum direction {ASCENT, DESCENT, CONSTANT}
+\end{verbatim}
+
+\subsection{calculate\_decompression\_stops}
+
+This saves the current state of the dive, and then does a test decompression. Along
+the way it saves the decompression stops, the time spent, and the direction to ``decomp\_stops''.
+
+\subsection{decompression\_init}
+Sets the DiveState data structure up for the decompression process.
+
+\subsection{generate\_final\_schedule\_to\_depth}
+This runs after the diver has risen to their next decompression stop. It calculates
+the changes in compartment pressure over the time spent at the new stop.
+
+Parameters:
+\begin{verbatim}
+double stop_depth
+\end{verbatim}
+
+\newpage
+\section{Glossary}
+\printglossary
+\addcontentsline{toc}{chapter}{Glossary}
+
+\end{document}
+
+% LocalWords:  pseudocode

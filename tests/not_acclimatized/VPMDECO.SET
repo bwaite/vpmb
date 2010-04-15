@@ -1,0 +1,14 @@
+&Program_Settings
+Units='fsw'
+Altitude_Dive_Algorithm='ON'
+Minimum_Deco_Stop_Time=1.0
+Critical_Radius_N2_Microns=0.8
+Critical_Radius_He_Microns=0.7
+Critical_Volume_Algorithm='ON'
+Crit_Volume_Parameter_Lambda=7500.0
+Gradient_Onset_of_Imperm_Atm=8.2
+Surface_Tension_Gamma=0.0179
+Skin_Compression_GammaC=0.257
+Regeneration_Time_Constant=20160.0
+Pressure_Other_Gases_mmHg=102.0
+/

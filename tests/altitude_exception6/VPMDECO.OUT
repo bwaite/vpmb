@@ -1,0 +1,31 @@
+                          DECOMPRESSION CALCULATION PROGRAM
+                        Developed in FORTRAN by Erik C. Baker
+ 
+ 
+Program Run:    03-04-2010 at 06:00 pm                       Model: VPM-B
+ 
+Description:    TRIMIX DIVE TO 80 MSW                                                 
+ 
+Gasmix Summary:                        FO2    FHe    FN2
+                          Gasmix # 1  0.150  0.450  0.400
+ 
+ 
+                                    DIVE PROFILE
+ 
+Seg-  Segm.  Run   | Gasmix | Ascent    From     To      Rate    | Constant
+ment  Time   Time  |  Used  |   or     Depth   Depth    +Dn/-Up  |  Depth
+  #   (min)  (min) |    #   | Descent  (mswg)  (mswg)  (msw/min) |  (mswg)
+----- -----  ----- | ------ | -------  ------  ------  --------- | --------
+  1     3.5    3.5 |    1   | Descent     0.     80.      23.0   |
+  2    26.5   30.0 |    1   |                                    |    80.
+ 
+ 
+                               DECOMPRESSION PROFILE
+ 
+          Leading compartment enters the decompression zone at    0.0 mswg
+                 Deepest possible decompression stop is   -3.0 mswg
+ 
+Seg-  Segm.  Run   | Gasmix | Ascent   Ascent   Col   |  DECO   STOP   RUN
+ment  Time   Time  |  Used  |   To      Rate    Not   |  STOP   TIME   TIME
+  #   (min)  (min) |    #   | (mswg) (msw/min)  Used  | (mswg)  (min)  (min)
+----- -----  ----- | ------ | ------ --------- ------ | ------  -----  -----
