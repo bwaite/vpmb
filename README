@@ -5,10 +5,16 @@
    The C version requires that gcc, and make are installed, and CMake should
    also be installed. 
 
-   If you need to change any build options (such as changing the debug build to 
-   the release build), you'll need to run "cmake c/" from the current
-   directory, and then "make" to build the program. This will produce a binary
-   "vpmb_c"
+   From this folder you should run
+
+   cmake c/
+
+   to generate the Makefile. Then run
+
+   make
+
+   and everything should build properly.
+
 
 ** Python Version
 
@@ -21,6 +27,14 @@
    The C program takes a json settings file as the first program argument. Optionally, 
    it can take a second argument, telling it to run the same way as the FORTRAN
    and Python program (this argument just has to exist, I was too lazy to check what it was).
+   
+   To run the simulation
+
+   ./vpmb_c path_to_input_file
+
+   for the all at once
+
+   ./vpmb_c path_to_input_file 1
 
    The C program currently just outputs the step by step results of the simulation,
    and the final state of the dive_state structure. This is usually 5000 lines of output

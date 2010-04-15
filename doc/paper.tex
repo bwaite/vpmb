@@ -78,7 +78,7 @@ This work is licensed under the Creative Commons Attribution-Share Alike 2.5 Can
 
 \section*{Abstract}
 \small{This paper outlines two implementations of the VPM-B dive algorithm: a reference implementation for
-  generating dive tables, and a proof of concept real-time decompression algorithm, suited for
+  generating dive tables, and a proof of concept, real-time decompression algorithm, suited for
   use in a dive computer.
 
   The VPM-B decompression algorithm is one of most common decompression models in use today, but most
@@ -114,7 +114,7 @@ Thanks to Pat Morin, and Erik C. Baker for making this project possible.
 
  Today, there are many algorithms used to help divers safely avoid decompression sickness. They can either be
  used to calculate dive tables, which allow the diver to match their dive profile to a decompression schedule,
- or be used in a dive computer, which track the time and depth of the dive in real time, and use that information
+ or be used in a dive computer, which tracks the time and depth of the dive in real time, and uses that information
  to calculate the decompression schedule. While there are already programs that can be used to generate the
  dive tables\footnote{VPMOpen {\color{blue}\uline{\href{http://webspace.webring.com/people/fv/vpmopen/}{http://webspace.webring.com/people/fv/vpmopen/}}}\\ and the original VPM-B program by Erik Baker \\{\color{blue}\uline{\href{ftp://decompression.org/Baker/VPM-B\%20Fortran\%20Source\%20Code.txt}{ftp://decompression.org/Baker/VPM-B\%20Fortran\%20Source\%20Code.txt}}} are two such examples}, the only programs that do real time analysis for decompression are proprietary,
 embedded systems for dive computers. The closed nature of these systems means that they may not be following
@@ -128,8 +128,8 @@ which to build production quality software and hardware for an open dive compute
 
 \section{Background}
 
-This section provides a basic introduction to scuba diving, and what you need to know about decompression, to
-help readers understand what will be discussed in this paper. 
+This section provides a basic introduction to scuba diving, and what you need to know about decompression to
+ understand what will be discussed in this paper. 
 When you scuba dive, you breath in compressed gasses \footnote{Often air, but other gas mixes are used
 for more complicated dives}. These gas mixes contain oxygen, and almost always other gasses \footnote{Pure oxygen
 is usually not used for safety reasons(Oxygen Toxicity)}. Nitrogen and Helium are the most commonly used
@@ -149,7 +149,7 @@ into the VPM-B algorithm, that is implemented in the programs.
 
 \subsubsection{VPM}
  The VPM algorithm starts by adopting a model of body tissues developed by Albert A. B\"uhlmann. This model
-uses 16 tissue compartments to model the effect the dissolved gasses have on human tissue. During the
+uses 16 tissue compartments to model the effect the dissolved gasses have on human tissues. During the
 normal part of the dive, gas is added to the compartments\cite{Buhlmann84} (on-gassing\glossary{name={On-Gassing}, description={The process of adding inert gasses to body tissues}}), and during the final ascent,
 they're released from the tissue (off-gassing\glossary{name={Off-Gassing}, description={The process of releasing inert gasses from body tissues}}). Many different compartments are needed because different
 tissues absorb and release gasses at different rates (as evidenced by the Helium\_Half\_Time and
@@ -222,10 +222,10 @@ custom file formats for input data), which would be very hard for modern day pro
 was made object oriented\footnote{There are definite instances of the ``God Object'' anti-pattern, but at least the state is encapsulated, and in a position to be refactored}, by ensuring that all the global state was encapsulated in a DiveState object, and all functions that would modify this state belonged to the object.
 The GOTOs were turned into normal loops with break statements, extremely long functions were broken into smaller
 pieces, and repeating code was extracted to stand alone methods. Finally,  the input and output file formats were changed
-to use JSON\glossary{name={JSON}, description={JavaScript Object Notation, a lightweight data representation language
+to use JSON,\glossary{name={JSON}, description={JavaScript Object Notation, a lightweight data representation language
 designed to be easier to write than XML}}
-, as it is a standard format like XML\glossary{name={XML}, description={Extensible Markup Language, a language used
-to structure data for easy computer reading and writing}}, that is supported by just about every programming language \footnote{though not for FORTRAN, so a translator was written to let the original program load the new input files}.
+ as it is a standard format like XML\glossary{name={XML}, description={Extensible Markup Language, a language used
+to structure data for easy computer reading and writing}}, that is supported by just about every programming language \footnote{Though not FORTRAN, so a translator was written to let the original program load the new input files}.
 
  Now that the Python program was finished, the port to C\glossary{name={C}, description={A programming language, designed for small size, and fast execution, which is 
 well suited for embedded systems}}
@@ -440,7 +440,7 @@ or staying at a constant depth. In addition, if they are changing depths, the ra
 do so is needed to perform certain calculations.
 
 Finally, for this proof of concept algorithm, there are a couple of restrictions for the
-decompression: first, the diver will have to signal that they want to decompress \footnote{by pushing a button
+decompression: first, the diver will have to signal that they want to decompress \footnote{By pushing a button
 on a real computer we'll assume}, and second, that they obey the decompression 
 schedule without skipping stops, or spending too
 little time at them. While more advanced dive computers are able to give a best effort estimation of how to
@@ -584,7 +584,7 @@ algorithm would be a great way to check the real world performance of the code.
 
 Finally, just getting a lot of programmers to read the code, point out problems, and criticize the program
  would be a great step in improving the quality of the code. Since C programs can suffer from
-vary strange and random bugs having other people help improve the program would go a long way towards making this
+very strange and random bugs having other people help improve the program would go a long way towards making this
 as bug free, and feature complete as possible.
 
 \section{Conclusion}
@@ -616,11 +616,11 @@ Input contains most of the dive information. It is an array of hashes that descr
 \hline
  Name                 &  Type                         &  Description                                                          \\
 \hline
- ``desc''             &  string                       &  description of the dive which will appear at the top of the output.  \\
+ ``desc''             &  string                       &  Description of the dive which will appear at the top of the output.  \\
 \hline
- ``num\_gas\_mixes''  &  integer                      &  the number of gas mixes held in the ``gasmix\_summary'' array.       \\
+ ``num\_gas\_mixes''  &  integer                      &  The number of gas mixes held in the ``gasmix\_summary'' array.       \\
 \hline
- ``gasmix\_summary''  &  array[hash\{string:float\}]  &  gas mixes carried by the diver, in the order they will be used.      \\
+ ``gasmix\_summary''  &  array[hash\{string:float\}]  &  Gas mixes carried by the diver, in the order they will be used.      \\
 \hline
 \end{longtable}
 %\end{center}
@@ -644,7 +644,7 @@ Note: Gas fractions must add up to 1.0 or the program will throw an error.
 \hline
  Name                &  Type         &  Description                                          \\
 \hline
- ``profile\_codes''  &  array[hash]  &  descent, constant depth, and ascent to be performed  \\
+ ``profile\_codes''  &  array[hash]  &  Descents, ascents, and constant depth segments to be performed  \\
 \hline
 \end{longtable}
 %\end{center}
@@ -658,17 +658,17 @@ If profile code is 1
 \hline
  Name                 &  Type     &  Description                                         \\
 \hline
- ``profile\_code''    &  integer  &  must be 1 for descent or ascent                               \\
+ ``profile\_code''    &  integer  &  Must be 1 for descent or ascent                               \\
 \hline
- ``starting\_depth''  &  float    &  depth in FSW or MSW where the dive will be started  \\
+ ``starting\_depth''  &  float    &  Depth in FSW or MSW where the dive will be started  \\
 \hline
- ``ending\_depth''    &  float    &  depth in FSW or MSW where the dive will stop        \\
+ ``ending\_depth''    &  float    &  Depth in FSW or MSW where the dive will stop        \\
 \hline
  ``rate''             &  float    &  FSW/min or MSW/min the diver will descend at        \\
 \hline
- ``gasmix''           &  integer  &  gasmix being used                                   \\
+ ``gasmix''           &  integer  &  Gasmix being used                                   \\
 \hline
- ``setpoint''         &  float    &  no clue                                             \\
+ ``setpoint''         &  float    &  Not Used (mentioned in Baker's code, so it's reproduced here)                                             \\
 \hline
 \end{longtable}
 %\end{center}
@@ -682,15 +682,15 @@ If profile code is 2
 \hline
  Name                                 &  Type     &  Description                                                \\
 \hline
- ``profile\_code''                    &  integer  &  must be 2 for constant depth                               \\
+ ``profile\_code''                    &  integer  &  Must be 2 for constant depth                               \\
 \hline
- ``depth''                            &  float    &  depth where the dive will take place                       \\
+ ``depth''                            &  float    &  Depth where the dive will take place                       \\
 \hline
- ``run\_time\_at\_end\_of\_segment''  &  float    &  what time (in minutes) the dive at the ``depth'' will end  \\
+ ``run\_time\_at\_end\_of\_segment''  &  float    &  What time (in minutes) the dive at the ``depth'' will end  \\
 \hline
- ``gasmix''                           &  integer  &  gasmix being used                                          \\
+ ``gasmix''                           &  integer  &  Gasmix being used                                          \\
 \hline
- ``setpoint''                         &  float    &  no clue                                                    \\
+ ``setpoint''                         &  float    &  Not Used                                                    \\
 \hline
 \end{longtable}
 %\end{center}
@@ -704,11 +704,11 @@ If profile code is 99
 \hline
  Name                                        &  Type         &  Description                                                                          \\
 \hline
- ``profile\_code''                           &  integer      &  must be 99 for ascent                                                                \\
+ ``profile\_code''                           &  integer      &  Must be 99 for ascent                                                                \\
 \hline
- ``number\_of\_ascent\_parameter\_changes''  &  integer      &  number of changes during the ascent (a change would be the step size, rate, gasmix)  \\
+ ``number\_of\_ascent\_parameter\_changes''  &  integer      &  Number of changes during the ascent (a change would be the step size, rate, gasmix)  \\
 \hline
- ``ascent\_summary''                         &  array[hash]  &  ascent profiles to be followed                                                       \\
+ ``ascent\_summary''                         &  array[hash]  &  Ascent profiles to be followed                                                       \\
 \hline
 \end{longtable}
 %\end{center}
@@ -721,15 +721,15 @@ Ascent summaries listing decompression gas mixes used, depths, and ascent rates.
 \hline
  Name                 &  Type            &  Description                                                         \\
 \hline
- ``starting\_depth''  &  float           &  depth where the ascent profile starts                               \\
+ ``starting\_depth''  &  float           &  Depth where the ascent profile starts                               \\
 \hline
- ``gasmix''           &  integer         &  gasmix summary being used                                           \\
+ ``gasmix''           &  integer         &  Gasmix summary being used                                           \\
 \hline
- ``rate''             &  negative float  &  the rate of ascent in FSW/min or MSW/min (must be negative number)  \\
+ ``rate''             &  negative float  &  The rate of ascent in FSW/min or MSW/min (must be negative number)  \\
 \hline
- ``step\_size''       &  float           &  distance between each decompression stop                            \\
+ ``step\_size''       &  float           &  Distance between each decompression stop                            \\
 \hline
- ``setpoint''         &  float           &  no clue                                                             \\
+ ``setpoint''         &  float           &  Not Used                                                             \\
 \hline
 \end{longtable}
 %\end{center}
@@ -742,9 +742,9 @@ Indicate if the user will be diving again, if so, how much time is spent at the 
 
 \hline
  Name                                   &  Type    &  Description \\                                                         \hline
- ``repetitive\_code''                  &  integer  &  do another dive (1), or stop (0)             \\
+ ``repetitive\_code''                  &  integer  &  Do another dive (1), or stop (0)             \\
 \hline
- ``surface\_interval\_time\_minutes''  &  float    &  time spent at surface before a repeat dive.  \\
+ ``surface\_interval\_time\_minutes''  &  float    &  Time spent at surface before a repeat dive.  \\
 \hline
 \end{longtable}
 %\end{center}
@@ -757,15 +757,15 @@ Information about the altitude the dive will be performed at.
 \hline
  Name                                   &  Type    &  Description                                                                                                  \\
 \hline
- ``Altitude\_of\_Dive''                 &  float   &  height in meters or feet the dive will occur at                                                              \\
+ ``Altitude\_of\_Dive''                 &  float   &  Height in meters or feet the dive will occur at                                                              \\
 \hline
  ``Diver\_Acclimatized\_at\_Altitude''  &  string  &  ``yes'', or ``no'', based on whether the diver has spent enough time at the altitude to become acclimatized  \\
 \hline
- ``Starting\_Acclimatized\_Altitude''   &  float   &  altitude diver is acclimatized at                                                                            \\
+ ``Starting\_Acclimatized\_Altitude''   &  float   &  Altitude diver is acclimatized at                                                                            \\
 \hline
- ``Ascent\_to\_Altitude\_Hours''        &  float   &  time in hours the diver took to get to the diving altitude                                                   \\
+ ``Ascent\_to\_Altitude\_Hours''        &  float   &  Time in hours the diver took to get to the diving altitude                                                   \\
 \hline
- ``Hours\_at\_Altitude\_Before\_Dive''  &  float   &  time the diver has spent at the altitude of the dive                                                         \\
+ ``Hours\_at\_Altitude\_Before\_Dive''  &  float   &  Time the diver has spent at the altitude of the dive                                                         \\
 \hline
 \end{longtable}
 %\end{center}
@@ -780,11 +780,11 @@ General program settings that don't really belong anywhere else.
 \hline
  Name                                  &  Type                                                                                             &  Description                                                                              \\
 \hline
- ``Units''                             &  string                                                                                           &  either ``fsw'' or ``msw'' if the dive is in feet of salt water, or meters of salt water  \\
+ ``Units''                             &  string                                                                                           &  Either ``fsw'' or ``msw'' if the dive is in feet of salt water, or meters of salt water  \\
 \hline
  ``Altitude\_Dive\_Algorithm''         &  string                                                                                           &  ``ON'' or ``OFF'' based on whether we're doing an altitude dive.                         \\
 \hline
- ``Minimum\_Deco\_Stop\_Time''         &  float                                                                                            &  minimum time the diver will spend at a decompression stop                                \\
+ ``Minimum\_Deco\_Stop\_Time''         &  float                                                                                            &  Minimum time the diver will spend at a decompression stop                                \\
 \hline
  ``Critical\_Radius\_N2\_Microns''     &  float                                                             & Critical nitrogen bubble size                                                                                         \\
 \hline
@@ -796,13 +796,13 @@ General program settings that don't really belong anywhere else.
 \hline
  ``Gradient\_Onset\_of\_Imperm\_Atm''  &  float                                                                                            &  Must be between 5 and 10, but you should probably leave it at the default 8.2                                                                                     \\
 \hline
- ``Surface\_Tension\_Gamma''           &  float                                                                                            &  surface tension of the bubble                                                            \\
+ ``Surface\_Tension\_Gamma''           &  float                                                                                            &  Surface tension of the bubble                                                            \\
 \hline
- ``Skin\_Compression\_GammaC''         &  float                                                                                            &  I think this is the ``skin'' of the bubble                                               \\
+ ``Skin\_Compression\_GammaC''         &  float                                                                                            &  Constant representing the permeable ``skin'' of the bubble                                               \\
 \hline
- ``Regeneration\_Time\_Constant''      &  float                                                                                            &  I think this is the time a bubble takes to return to its original size                   \\
+ ``Regeneration\_Time\_Constant''      &  float                                                                                            &  The time a bubble takes to return to its original size                   \\
 \hline
- ``Pressure\_Other\_Gases\_mmHg''      &  float                                                                                            &  other gases (carbon dioxide, water vapor and oxygen).                                    \\
+ ``Pressure\_Other\_Gases\_mmHg''      &  float                                                                                            &  Other gases (carbon dioxide, water vapor and oxygen).                                    \\
 \hline
 \end{longtable}
 %\end{center}
@@ -860,7 +860,7 @@ Helium\_Pressure & double[16] & The B\"uhlmann compartments for helium. \\
 \hline
 Nitrogen\_Pressure & double[16] & The B\"uhlmann compartments for nitrogen. \\
 \hline
-*decomp\_stops & decompression\_stops & Array for storing the decompression stop depths, times, and directions, 
+decomp\_stops & decompression\_stops[] & Array for storing the decompression stop depths, times, and directions, 
 calculated when the diver decides to decompress. \\
 \hline
 decomp\_stop\_index & int & Points to the current decompression stop in the decomp\_stops array. \\
