@@ -87,7 +87,8 @@ int update_depth(dive_state *dive, double increment_time, double rate, dive_prof
 }
 void calc_current_deco_zone(dive_state * dive, single_dive *current_dive){
         dive_profile *current_profile = NULL;
-        for(int j=0; j < current_dive->num_profile_codes; j++){
+        int j;
+        for(j=0; j < current_dive->num_profile_codes; j++){
                 current_profile = &(current_dive->dive_profiles[j]);
                 if (current_profile->profile_code == 99)
                         break;
@@ -230,7 +231,8 @@ void real_time_dive(dive_state *dive, json_input *input){
 
 void output_array_double(char *name, double arr[], int len){
         printf("%s: [", name);
-        for(int i = 0; i < len; i++){
+        int i;
+        for(i = 0; i < len; i++){
                 printf("%lf, ", arr[i]);
         }
         printf("]\n");
@@ -238,7 +240,8 @@ void output_array_double(char *name, double arr[], int len){
 
 void output_array_int(char *name, int arr[], int len){
         printf("%s: [", name);
-        for(int i = 0; i < len; i++){
+        int i;
+        for(i = 0; i < len; i++){
                 printf("%d, ", arr[i]);
         }
         printf("]\n");

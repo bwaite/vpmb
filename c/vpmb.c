@@ -1906,7 +1906,8 @@ void calculate_decompression_stops(dive_state *dive, dive_profile *current_profi
         critical_volume_loop(dive_cpy);
                 
         dive->decomp_stops = (decompression_stops*) calloc(dive_cpy->decomp_stop_index, sizeof(decompression_stops));
-        for(int i = 0; i < dive_cpy->decomp_stop_index; i++){
+        //int i;
+        for(i = 0; i < dive_cpy->decomp_stop_index; i++){
                 dive->decomp_stops[i] = dive_cpy->decomp_stops[i];
         }
         dive->decomp_stop_index = 0;

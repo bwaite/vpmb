@@ -1,0 +1,22 @@
+#! /usr/bin/env python
+# encoding: utf-8
+
+VERSION='0.1'
+APPNAME='vpmb'
+
+import waflib.Configure
+waflib.Configure.autoconfig = True
+
+def options(opt):
+        opt.load('compiler_c')
+
+def configure(conf):
+        conf.load('compiler_c')
+
+def build(bld):
+        bld.program(source='main.c vpmb.c cJSON.c strlcpy.c',
+                    target='vpmb',
+                    lib = ['m'],
+                    linkflags = ['-ggdb3'],
+                    cflags = ['-W', '-Wall', '-Wextra'])
+        

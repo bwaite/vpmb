@@ -3,3 +3,4 @@ CMakeCache.txt
 CMakeFiles/
 gmon.out
 c/doxygen
+c/build
