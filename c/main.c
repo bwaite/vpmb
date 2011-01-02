@@ -94,7 +94,7 @@ void calc_current_deco_zone(dive_state * dive, single_dive *current_dive){
                         break;
         }
         
-        double decomp_zone = find_start_of_decompression_zone(dive, current_profile);
+        double decomp_zone = vpmb_find_start_of_decompression_zone(dive, current_profile);
         printf("Deepest possible decompression stop is %lf\n", decomp_zone);
         dive->Start_of_Decompression_Zone = decomp_zone;
 }
@@ -105,7 +105,7 @@ void real_time_dive(dive_state *dive, json_input *input){
         dive->Real_Time_Decompression = TRUE;
         for(i=0; i < input->number_of_dives; i++){
                 current_dive = &(input->dives[i]);
-                set_gas_mixes(dive, current_dive);
+                vpmb_set_gas_mixes(dive, current_dive);
 
                 dive_profile *current_profile = &(current_dive->dive_profiles[0]);
                 dive->Starting_Depth = current_profile->starting_depth;
@@ -133,7 +133,7 @@ void real_time_dive(dive_state *dive, json_input *input){
                                 //double rate;
                                 //dive->Rate = current_profile->rate;
                                 if(dive->Decompressing == FALSE){
-                                        cur_dir = current_direction(dive, increment_time);
+                                        cur_dir = vpmb_current_direction(dive, increment_time);
                                         //int check = msw_driver(dive);
                 
                                         //if (check == 1 || check ==2) {
@@ -141,23 +141,23 @@ void real_time_dive(dive_state *dive, json_input *input){
                                         //regular ascent, or ascent to start of decompression zone
                                         if(cur_dir == ASCENT){
 //                                        else{
-                                                GAS_LOADINGS_ASCENT_DESCENT(dive, dive->Last_Depth, dive->Depth, dive->Rate);
+                                                vpmb_gas_loadings_ascent_descent(dive, dive->Last_Depth, dive->Depth, dive->Rate);
                                                 printf("Ascending: Depth %lf, Run_Time: %lf\n", dive->Depth, dive->Run_Time);
                                                 continue;
                                                 //                                      }
                                         }
                                         else if(cur_dir == DESCENT){
-                                                GAS_LOADINGS_ASCENT_DESCENT(dive, dive->Last_Depth, dive->Depth, dive->Rate);
+                                                vpmb_gas_loadings_ascent_descent(dive, dive->Last_Depth, dive->Depth, dive->Rate);
 
-                                                CALC_CRUSHING_PRESSURE(dive, dive->Last_Depth, dive->Depth, dive->Rate);
+                                                vpmb_calc_crushing_pressure(dive, dive->Last_Depth, dive->Depth, dive->Rate);
                                                 printf("Descending: Depth %lf, Run_Time: %lf\n", dive->Depth, dive->Run_Time);
                                         }
                                         else if (cur_dir == CONSTANT){
                                                 //else{
-                                                if(finished_constant_depth_profile(dive, current_profile) == DONE_PROFILE)
+                                                if(vpmb_finished_constant_depth_profile(dive, current_profile) == DONE_PROFILE)
                                                         break;
 
-                                                GAS_LOADINGS_CONSTANT_DEPTH(dive, dive->Depth, dive->Run_Time + increment_time);
+                                                vpmb_gas_loadings_constant_depth(dive, dive->Depth, dive->Run_Time + increment_time);
                                                 printf("Constant: Depth: %lf, Run_Time: %lf\n", dive->Depth, dive->Run_Time);
                                                 //}
                                         }
@@ -166,8 +166,8 @@ void real_time_dive(dive_state *dive, json_input *input){
                                         if(dive->decomp_stops == NULL) {
                                                 double time = dive->Run_Time;
 //                                                double depth = dive->Depth;
-                                                calculate_decompression_stops(dive, current_profile);
-                                                decompress_init(dive, current_profile);
+                                                vpmb_calculate_decompression_stops(dive, current_profile);
+                                                vpmb_decompress_init(dive, current_profile);
                                                 dive->Run_Time = time;
 //                                                dive->Depth = depth;
                                         }
@@ -176,15 +176,15 @@ void real_time_dive(dive_state *dive, json_input *input){
                                                         dive_finished = TRUE;
                                                 else if (dive->decomp_stops[dive->decomp_stop_index].ascent_or_const == ASCENT){
                                                         printf("ASCENT\n");
-                                                        GAS_LOADINGS_ASCENT_DESCENT(dive, dive->Last_Depth, dive->Depth, dive->Rate);
-                                                        CALC_MAX_ACTUAL_GRADIENT(dive, dive->Deco_Stop_Depth);
+                                                        vpmb_gas_loadings_ascent_descent(dive, dive->Last_Depth, dive->Depth, dive->Rate);
+                                                        vpmb_calc_max_actual_gradient(dive, dive->Deco_Stop_Depth);
                                                         calc_decompression_stop = TRUE;
                                                 }
                                                 else{
                                                         printf("CONST\n");
                                                         if(calc_decompression_stop == TRUE){
                                                                 double run_time = dive->Run_Time;                                                       
-                                                                critical_volume_decision_tree_to_depth(dive, dive->decomp_stops[dive->decomp_stop_index].depth-0.1);
+                                                                vpmb_critical_volume_decision_tree_to_depth(dive, dive->decomp_stops[dive->decomp_stop_index].depth-0.1);
                                                                 dive->Wait_Time = dive->Run_Time;
                                                                 dive->Run_Time = run_time;
                                                                 calc_decompression_stop = FALSE;
@@ -197,7 +197,7 @@ void real_time_dive(dive_state *dive, json_input *input){
                                         //if(dive->Depth <= dive->Start_of_Decompression_Zone && dive->Depth >= zone_upper_bound){
                                                 
                                         /* printf("Waiting to decompress"); */
-                                        /* GAS_LOADINGS_ASCENT_DESCENT(dive, dive->Starting_Depth, dive->Depth_Start_of_Deco_Zone, dive->Rate); */
+                                        /* vpmb_gas_loadings_ascent_descent(dive, dive->Starting_Depth, dive->Depth_Start_of_Deco_Zone, dive->Rate); */
                                         /* dive->Run_Time_Start_of_Deco_Zone = dive->Run_Time; */
                                         /* dive->Deco_Phase_Volume_Time = 0.0; */
                                         /* dive->Last_Run_Time = 0.0; */
@@ -221,7 +221,7 @@ void real_time_dive(dive_state *dive, json_input *input){
                                 //current_rate = -10;
                                 //dive->Rate = -10;
                                 //if (dive->Depth > dive->Start_of_Decompression_Zone)
-                                //        GAS_LOADINGS_ASCENT_DESCENT(dive, dive->Last_Depth, dive->Depth, dive->Rate);
+                                //        vpmb_gas_loadings_ascent_descent(dive, dive->Last_Depth, dive->Depth, dive->Rate);
 //                                }
                         }
                 }
@@ -374,27 +374,27 @@ int main(int argc, char *argv[])
 
         json_input input;        
         
-        if (load_from_json(&input, argv[1]) == BADJSON)
+        if (vpmb_load_from_json(&input, argv[1]) == BADJSON)
                 return -1;
-        if (validate_data(&input, test_dive) == INVALIDDATA){
+        if (vpmb_validate_data(&input, test_dive) == INVALIDDATA){
                 printf("INVALID DATA IN INPUT FILE. PLEASE CHECK IT AND RUN THIS AGAIN\n");
                 return BADJSON;
         }
-        if (initialize_data(&input, test_dive) == INVALIDDATA){
+        if (vpmb_initialize_data(&input, test_dive) == INVALIDDATA){
                 printf("INVALID DATA IN INPUT FILE. PLEASE CHECK IT AND RUN THIS AGAIN\n");
                 return BADJSON;
         }
         
         /* default is real time, but passing in 1 allows for ahead of time profile */
         if(argc > 2 && argv[2][0] == '1')
-                repetitive_dive_loop(test_dive, &input);
+                vpmb_repetitive_dive_loop(test_dive, &input);
         else
                 real_time_dive(test_dive, &input);
 
         output_dive_state(test_dive);
         
-        free_dives(&input);
-        free_dive_state(test_dive);
+        vpmb_free_dives(&input);
+        vpmb_free_dive_state(test_dive);
         
         return 0;
 }
