@@ -240,12 +240,6 @@ int vpmb_load_from_json(json_input *in, const char* filename){
         return GOODJSON;
 }
 
-void vpmb_lowercase_string(char *str){
-        size_t i;
-        for(i = 0; i < strlen(str); i++)
-                str[i] = tolower(str[i]);
-}
-
 /* VPM RELATED STUFF */
 
 /**
@@ -403,18 +397,6 @@ double vpmb_calc_barometric_pressure(double Altitude, BOOL units_fsw){
 
         Barometric_Pressure = Pressure_at_Sea_Level * exp(log(Temp_at_Sea_Level / Temp_at_Geopotential_Altitude) * GMR_Factor / Temp_Gradient);
         return Barometric_Pressure;
-}
-
-double min(double i, double j){
-        if(i < j)
-                return i;
-        return j;
-}
-
-double max(double i, double j){
-        if(i > j)
-                return i;
-        return j;
 }
 
 double vpmb_calc_deco_ceiling(dive_state *dive){
@@ -1168,7 +1150,7 @@ void vpmb_vpm_repetitive_algorithm(dive_state *dive, double Surface_Interval_Tim
 
 int vpmb_validate_data(json_input *input, dive_state *dive){
 
-        vpmb_lowercase_string(input->Units);
+        lowercase_string(input->Units);
 
         if (strcmp(input->Units, "fsw") == 0){
                 dive->units_fsw = TRUE;
@@ -1188,7 +1170,7 @@ int vpmb_validate_data(json_input *input, dive_state *dive){
         if ((dive->units_fsw == FALSE) && (input->Altitude_of_Dive > 9144.0))
                 return INVALIDDATA;
 
-        vpmb_lowercase_string(input->Diver_Acclimatized_at_Altitude);
+        lowercase_string(input->Diver_Acclimatized_at_Altitude);
 
         if (strcmp(input->Diver_Acclimatized_at_Altitude, "yes") == 0)
                 dive->Diver_Acclimatized = TRUE;
@@ -1274,7 +1256,7 @@ int vpmb_initialize_data(json_input *input, dive_state *dive){
                 dive->Initial_Critical_Radius_He[i] = input->Critical_Radius_He_Microns * 1.0E-6;
         }
 
-        vpmb_lowercase_string(input->Critical_Volume_Algorithm);
+        lowercase_string(input->Critical_Volume_Algorithm);
 
         if (strcmp(input->Critical_Volume_Algorithm, "on") == 0)
                 dive->Critical_Volume_Algorithm_Off = FALSE;
@@ -1283,7 +1265,7 @@ int vpmb_initialize_data(json_input *input, dive_state *dive){
         else
                 return INVALIDDATA;
 
-        vpmb_lowercase_string(input->Altitude_Dive_Algorithm);
+        lowercase_string(input->Altitude_Dive_Algorithm);
 
         if (strcmp(input->Altitude_Dive_Algorithm, "on") == 0){
                 dive->Altitude_Dive_Algorithm_Off = FALSE;

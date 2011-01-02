@@ -14,7 +14,7 @@ def configure(conf):
     conf.load('compiler_c')
 
 def build(bld):
-    bld.program(source='main.c vpmb.c cJSON.c strlcpy.c',
+    bld.program(source='main.c vpmb.c utils.c cJSON.c strlcpy.c',
                 target='vpmb',
                 lib = ['m'],
                 linkflags = ['-ggdb3'],

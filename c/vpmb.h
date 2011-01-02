@@ -34,6 +34,7 @@
 #include <math.h>
 #include "strlcpy.h"
 #include "cJSON.h"
+#include "utils.h"
 
 //structs
 
@@ -258,9 +259,6 @@ typedef struct {
 } json_input;
 
 /* Function Prototypes */
-double min(double i, double j);
-double max(double i, double j);
-void vpmb_lowercase_string(char *str);
 
 void vpmb_failure(void);
 double vpmb_get_setpoint_or_null(const cJSON *setpoint);
