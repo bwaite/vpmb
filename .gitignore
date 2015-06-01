@@ -1,6 +1,9 @@
 *.pyc
+tests/*.pyc
 CMakeCache.txt
 CMakeFiles/
 gmon.out
 c/doxygen
 c/build
+c/.waf*
+c/.lock-wafbuild
