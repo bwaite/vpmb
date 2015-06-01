@@ -7,3 +7,4 @@ c/doxygen
 c/build
 c/.waf*
 c/.lock-wafbuild
+c/.lock-waf_linux2_build
