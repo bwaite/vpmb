@@ -57,7 +57,7 @@ int update_depth(dive_state *dive, double increment_time, double rate, dive_prof
 
     } else if(current_profile->profile_code == 99) {
         if(dive->decomp_stops != NULL) {
-            printf("stop: %d, depth: %f, time: %f\n",dive->decomp_stop_index, dive->Depth, dive->Run_Time);
+            printf("stop: %d, depth: %f, time: %f\n", dive->decomp_stop_index, dive->Depth, dive->Run_Time);
 
 
             if(dive->decomp_stops[dive->decomp_stop_index].ascent_or_const == ASCENT) {
@@ -90,7 +90,7 @@ void calc_current_deco_zone(dive_state * dive, single_dive *current_dive)
     dive_profile *current_profile = NULL;
     int j;
     double decomp_zone;
-    for(j=0; j < current_dive->num_profile_codes; j++) {
+    for(j = 0; j < current_dive->num_profile_codes; j++) {
         current_profile = &(current_dive->dive_profiles[j]);
         if (current_profile->profile_code == 99) {
             break;
@@ -106,7 +106,7 @@ void real_time_dive(dive_state *dive, json_input *input)
     int i, j;
     single_dive *current_dive;
     dive->Real_Time_Decompression = TRUE;
-    for(i=0; i < input->number_of_dives; i++) {
+    for(i = 0; i < input->number_of_dives; i++) {
         dive_profile *current_profile;
         BOOL dive_finished = FALSE;
         BOOL calc_decompression_stop = FALSE;
@@ -121,7 +121,7 @@ void real_time_dive(dive_state *dive, json_input *input)
         dive->Ending_Depth = current_profile->ending_depth;
         dive->Rate = current_profile->rate;
         dive->Mix_Number = current_profile->gasmix;
-        for(j=0; j < current_dive->num_profile_codes; j++) {
+        for(j = 0; j < current_dive->num_profile_codes; j++) {
             dive_profile *current_profile = &(current_dive->dive_profiles[j]);
             double current_rate = current_profile->rate;
             /* printf("current_rate: %f",current_rate); */
@@ -186,7 +186,7 @@ void real_time_dive(dive_state *dive, json_input *input)
                             printf("CONST\n");
                             if(calc_decompression_stop == TRUE) {
                                 double run_time = dive->Run_Time;
-                                vpmb_critical_volume_decision_tree_to_depth(dive, dive->decomp_stops[dive->decomp_stop_index].depth-0.1);
+                                vpmb_critical_volume_decision_tree_to_depth(dive, dive->decomp_stops[dive->decomp_stop_index].depth - 0.1);
                                 dive->Wait_Time = dive->Run_Time;
                                 dive->Run_Time = run_time;
                                 calc_decompression_stop = FALSE;
@@ -303,22 +303,22 @@ void output_dive_state(dive_state *dive)
     output_array_int("Rate_Change", dive->Rate_Change, 16);
     output_array_int("Step_Size_Change", dive->Step_Size_Change, 16);
 
-    output_array_double("Regenerated_Radius_He", dive->Regenerated_Radius_He,16);
-    output_array_double("Regenerated_Radius_N2", dive->Regenerated_Radius_N2,16);
-    output_array_double("He_Pressure_Start_of_Ascent", dive->He_Pressure_Start_of_Ascent,16);
-    output_array_double("N2_Pressure_Start_of_Ascent",dive->N2_Pressure_Start_of_Ascent,16);
-    output_array_double("He_Pressure_Start_of_Deco_Zone",dive->He_Pressure_Start_of_Deco_Zone,16);
-    output_array_double("N2_Pressure_Start_of_Deco_Zone",dive->N2_Pressure_Start_of_Deco_Zone,16);
-    output_array_double("Phase_Volume_Time", dive->Phase_Volume_Time,16);
-    output_array_double("Last_Phase_Volume_Time",dive->Last_Phase_Volume_Time,16);
-    output_array_double("Allowable_Gradient_He", dive->Allowable_Gradient_He,16);
-    output_array_double("Allowable_Gradient_N2", dive->Allowable_Gradient_N2,16);
-    output_array_double("Adjusted_Crushing_Pressure_He", dive->Adjusted_Crushing_Pressure_He,16);
-    output_array_double("Adjusted_Crushing_Pressure_N2", dive->Adjusted_Crushing_Pressure_N2,16);
-    output_array_double("Initial_Allowable_Gradient_N2", dive->Initial_Allowable_Gradient_N2,16);
-    output_array_double("Initial_Allowable_Gradient_He",dive->Initial_Allowable_Gradient_He,16);
-    output_array_double("Deco_Gradient_He",dive->Deco_Gradient_He,16);
-    output_array_double("Deco_Gradient_N2",dive->Deco_Gradient_N2,16);
+    output_array_double("Regenerated_Radius_He", dive->Regenerated_Radius_He, 16);
+    output_array_double("Regenerated_Radius_N2", dive->Regenerated_Radius_N2, 16);
+    output_array_double("He_Pressure_Start_of_Ascent", dive->He_Pressure_Start_of_Ascent, 16);
+    output_array_double("N2_Pressure_Start_of_Ascent", dive->N2_Pressure_Start_of_Ascent, 16);
+    output_array_double("He_Pressure_Start_of_Deco_Zone", dive->He_Pressure_Start_of_Deco_Zone, 16);
+    output_array_double("N2_Pressure_Start_of_Deco_Zone", dive->N2_Pressure_Start_of_Deco_Zone, 16);
+    output_array_double("Phase_Volume_Time", dive->Phase_Volume_Time, 16);
+    output_array_double("Last_Phase_Volume_Time", dive->Last_Phase_Volume_Time, 16);
+    output_array_double("Allowable_Gradient_He", dive->Allowable_Gradient_He, 16);
+    output_array_double("Allowable_Gradient_N2", dive->Allowable_Gradient_N2, 16);
+    output_array_double("Adjusted_Crushing_Pressure_He", dive->Adjusted_Crushing_Pressure_He, 16);
+    output_array_double("Adjusted_Crushing_Pressure_N2", dive->Adjusted_Crushing_Pressure_N2, 16);
+    output_array_double("Initial_Allowable_Gradient_N2", dive->Initial_Allowable_Gradient_N2, 16);
+    output_array_double("Initial_Allowable_Gradient_He", dive->Initial_Allowable_Gradient_He, 16);
+    output_array_double("Deco_Gradient_He", dive->Deco_Gradient_He, 16);
+    output_array_double("Deco_Gradient_N2", dive->Deco_Gradient_N2, 16);
 
     printf("Segment_Number: %d\n", dive->Segment_Number);
     printf("Mix_Number: %d\n", dive->Mix_Number);

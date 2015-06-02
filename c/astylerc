@@ -9,3 +9,5 @@ indent-col1-comments
 # recursive
 
 add-brackets
+
+pad-oper
