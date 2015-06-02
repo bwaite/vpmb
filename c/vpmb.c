@@ -186,6 +186,7 @@ int vpmb_load_from_json(json_input *in, const char* filename)
     data=malloc(len+1);
     if (fread(data,1,len,f) < len) {
         free(data);
+        fclose(f);
         return BADJSON;
     }
     fclose(f);
