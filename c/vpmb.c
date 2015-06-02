@@ -185,6 +185,7 @@ int vpmb_load_from_json(json_input *in, const char* filename)
 
     data=malloc(len+1);
     if (fread(data,1,len,f) < len) {
+        free(data);
         return BADJSON;
     }
     fclose(f);
@@ -201,6 +202,7 @@ int vpmb_load_from_json(json_input *in, const char* filename)
         if (current_dive != NULL) {
             vpmb_input_add_dive(&(in->dives[i]), current_dive);
         } else {
+            free(data);
             return BADJSON;
         }
     }
@@ -228,6 +230,7 @@ int vpmb_load_from_json(json_input *in, const char* filename)
         } else if (cJSON_False == setpoint_is_bar->type) {
             in->SetPoint_Is_Bar = FALSE;
         } else {
+            free(data);
             return BADJSON;
         }
     }
