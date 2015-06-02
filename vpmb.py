@@ -562,9 +562,6 @@ class DiveState(object):
         # how it was reported in the original research papers by Yount and
         # colleauges.
 
-        Ending_Radius_He = 0.0
-        Ending_Radius_N2 = 0.0
-
         Gradient_Onset_of_Imperm = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.Units_Factor  # convert to diving units
         Gradient_Onset_of_Imperm_Pa = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.ATM     # convert to Pascals
 
@@ -1130,7 +1127,6 @@ class DiveState(object):
 
         Allow_Grad_First_Stop_Pa = (Allowable_Gradient_Molecule / self.Units_Factor) * self.ATM
         Radius_First_Stop = (2.0 * self.Surface_Tension_Gamma) / Allow_Grad_First_Stop_Pa
-        Radius1 = Radius_First_Stop
 
         A = Amb_Press_Next_Stop_Pascals
         B = -2.0 * self.Surface_Tension_Gamma
@@ -1141,7 +1137,6 @@ class DiveState(object):
 
         Ending_Radius = RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound)
 
-        Radius2 = Ending_Radius
         Deco_Gradient_Pascals = (2.0 * self.Surface_Tension_Gamma) / Ending_Radius
         return (Deco_Gradient_Pascals / self.ATM) * self.Units_Factor
 
@@ -2462,9 +2457,9 @@ def RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound):
     Derivative_of_Function = Ending_Radius * (Ending_Radius * 3.0 * A - 2.0 * B)
 
     for i in range(100):
-        if((((Ending_Radius-Radius_at_High_Bound) * Derivative_of_Function - Function) *
-            ((Ending_Radius-Radius_at_Low_Bound) * Derivative_of_Function - Function) >= 0.0)
-           or (abs(2.0 * Function) > (abs(Last_Diff_Change*Derivative_of_Function)))):
+        if((((Ending_Radius - Radius_at_High_Bound) * Derivative_of_Function - Function) *
+            ((Ending_Radius - Radius_at_Low_Bound) * Derivative_of_Function - Function) >= 0.0)
+           or (abs(2.0 * Function) > (abs(Last_Diff_Change * Derivative_of_Function)))):
 
             Last_Diff_Change = Differential_Change
             Differential_Change = 0.5 * (Radius_at_High_Bound - Radius_at_Low_Bound)
