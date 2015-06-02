@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # encoding: utf-8
 
 VERSION='0.1'
@@ -9,13 +8,45 @@ waflib.Configure.autoconfig = True
 
 def options(opt):
     opt.load('compiler_c')
-
+    opt.add_option('--address-sanitizer', action='store_true', default=False, dest='address_sanitizer', help='Enable the address sanitizer')
+    opt.add_option('--undefined-behavior-sanitizer', action='store_true', default=False, dest='undefined_behavior_sanitizer', help='Enable the undefined behavior sanitizer')
+    
 def configure(conf):
     conf.load('compiler_c')
 
 def build(bld):
+    link_flags = [] # '-flto' # link time optimization
+    cflags = ['-Wall', '-std=c++11'] # '-Weffc++',
+
+    # Optional sanitizers. Good for debugging
+    if bld.options.address_sanitizer:
+        link_flags.extend(['-fsanitize=address', '-fno-omit-frame-pointer'])
+        cflags.append('-fsanitize=address')
+
+    if bld.options.undefined_behavior_sanitizer:
+        link_flags.append('-fsanitize=undefined')
+        cflags.append('-fsanitize=undefined')
+
     bld.program(source='main.c vpmb.c utils.c cJSON.c strlcpy.c',
                 target='vpmb',
                 lib = ['m'],
                 linkflags = ['-ggdb3'],
                 cflags = ['-W', '-Wall', '-Wextra', '-Wpedantic'])
+
+def doxygen(ctx):
+    """build doxygen documentation"""
+    ctx.exec_command("doxygen")
+
+def astyle(ctx):
+    """format code with astyle"""
+    ctx.exec_command('astyle --options=astylerc main.c utils.h utils.c vpmb.h vpmb.c ')
+
+def cppcheck(ctx):
+    """run cppcheck"""
+    ctx.exec_command("cppcheck .")
+
+def clang_analyze(ctx):
+    """run clang analyzer"""
+    # not sure if the configure step needs to be run with scan-build as well
+    ctx.exec_command("scan-build --use-analyzer=/usr/bin/clang ./waf configure")
+    ctx.exec_command("scan-build --use-analyzer=/usr/bin/clang ./waf build")

@@ -1,0 +1,11 @@
+# AStyle configuration options
+
+-n 
+
+style=linux 
+
+indent-col1-comments 
+
+# recursive
+
+add-brackets
