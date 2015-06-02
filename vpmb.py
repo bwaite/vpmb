@@ -30,7 +30,7 @@
 import json
 from math import log, trunc, exp, sqrt
 import datetime
-from optparse import OptionParser
+import argparse
 
 
 class AltitudeException(Exception):
@@ -2549,34 +2549,33 @@ def parse_settings():
     """
 
     # Load settings and inputs
-    usage = "usage: %prog [options]"
-    parser = OptionParser(usage=usage)
+    parser = argparse.ArgumentParser()
 
-    parser.add_option("-i", action="store", dest="input_file_name",
-                      default="vpm_decompression_input.json",
-                      help="Input file containing dive information")
+    parser.add_argument("-i", action="store", dest="input_file_name",
+                        default="vpm_decompression_input.json",
+                        help="Input file containing dive information")
 
-    parser.add_option("-o", action="store", dest="output_file_name",
-                      default="output.html",
-                      help="Output file for dive log")
+    parser.add_argument("-o", action="store", dest="output_file_name",
+                        default="output.html",
+                        help="Output file for dive log")
 
-    parser.add_option("-j", action="store", dest="json_output", default=None,
-                      help="Output json instead of html")
+    parser.add_argument("-j", action="store", dest="json_output", default=None,
+                        help="Output json instead of html")
 
-    (options, args) = parser.parse_args()
+    args = parser.parse_args()
 
-    return options, args
+    return args
 
 # if they ran this at the command line, output the parse the command line
 # options and output the results
 if __name__ == '__main__':
-    options, args = parse_settings()
-    program_state = DiveState(input_file_name=options.input_file_name)
+    args = parse_settings()
+    program_state = DiveState(input_file_name=args.input_file_name)
     program_state.main()
 
-    if options.json_output:
-        json_out = open(options.json_output, "w")
+    if args.json_output:
+        json_out = open(args.json_output, "w")
         program_state.output_object.to_json(json_out)
         json_out.close()
     else:
-        program_state.output_object.to_html(options.output_file_name)
+        program_state.output_object.to_html(args.output_file_name)
