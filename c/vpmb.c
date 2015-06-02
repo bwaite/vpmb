@@ -57,12 +57,12 @@ const int DONE_PROFILE = 1;
 const int NOT_DONE_PROFILE = -1;
 const int DEPTH_CHANGED = 0;
 
-const double meters_per_minute_change = 2.5; //when deciding whether to ascend or descend (schreiner_equation) or staying at a constant depth (haldane_equation), see if the depth change over the last minute is +- this value
+const double meters_per_minute_change = 2.5; /* when deciding whether to ascend or descend (schreiner_equation) or staying at a constant depth (haldane_equation), see if the depth change over the last minute is +- this value */
 
 
 
 void vpmb_failure(){
-        // turn this into a better way to handle failures for a real program
+         /* turn this into a better way to handle failures for a real program */
         exit(EXIT_FAILURE);
 }
 
@@ -196,7 +196,7 @@ int vpmb_load_from_json(json_input *in, const char* filename){
                         return BADJSON;
         }
 
-        //copy altitude
+        /* copy altitude */
         current_item = cJSON_GetObjectItem(json, "altitude");
 
         in->Altitude_of_Dive = cJSON_GetObjectItem(current_item, "Altitude_of_Dive")->valuedouble;
@@ -207,7 +207,7 @@ int vpmb_load_from_json(json_input *in, const char* filename){
         in->Ascent_to_Altitude_Hours = cJSON_GetObjectItem(current_item, "Ascent_to_Altitude_Hours")->valuedouble;
         in->Hours_at_Altitude_Before_Dive = cJSON_GetObjectItem(current_item, "Hours_at_Altitude_Before_Dive")->valuedouble;
 
-        //copy settings
+        /* copy settings */
         current_item = cJSON_GetObjectItem(json, "settings");
 
         strlcpy(in->Units, cJSON_GetObjectItem(current_item, "Units")->valuestring, sizeof(in->Units));
@@ -449,12 +449,19 @@ int vpmb_vpm_altitude_dive_algorithm(json_input *input, dive_state *dive){
                 }
         }
         else{
+                double Starting_Ambient_Pressure;
+                double Ending_Ambient_Pressure;
+                double Initial_Inspired_N2_Pressure;
+                double Rate;
+                double Nitrogen_Rate;
+                double Inspired_Nitrogen_Pressure;
+                
                 if ((input->Starting_Acclimatized_Altitude >= dive->Altitude_of_Dive) || (input->Starting_Acclimatized_Altitude < 0.0))
                         return BADALTITUDE;
 
                 dive->Barometric_Pressure = vpmb_calc_barometric_pressure(input->Starting_Acclimatized_Altitude, dive->units_fsw);
 
-                double Starting_Ambient_Pressure = dive->Barometric_Pressure;
+                Starting_Ambient_Pressure = dive->Barometric_Pressure;
 
                 for(i = 0; i < 16; i++){
                         dive->Helium_Pressure[i] = 0.0;
@@ -462,10 +469,11 @@ int vpmb_vpm_altitude_dive_algorithm(json_input *input, dive_state *dive){
                 }
 
                 dive->Barometric_Pressure = vpmb_calc_barometric_pressure(dive->Altitude_of_Dive, dive->units_fsw);
-                double Ending_Ambient_Pressure = dive->Barometric_Pressure;
-                double Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * fraction_inert_gas;
-                double Rate = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Ascent_to_Altitude_Time;
-                double Nitrogen_Rate = Rate * fraction_inert_gas;
+                
+                Ending_Ambient_Pressure = dive->Barometric_Pressure;
+                Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * fraction_inert_gas;
+                Rate = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Ascent_to_Altitude_Time;
+                Nitrogen_Rate = Rate * fraction_inert_gas;
 
                 for (i=0; i < 16; i++) {
                         double Initial_Nitrogen_Pressure = dive->Nitrogen_Pressure[i];
@@ -514,7 +522,7 @@ int vpmb_vpm_altitude_dive_algorithm(json_input *input, dive_state *dive){
                         }
 
                 }
-                double Inspired_Nitrogen_Pressure = (dive->Barometric_Pressure - dive->Water_Vapor_Pressure) * fraction_inert_gas;
+                Inspired_Nitrogen_Pressure = (dive->Barometric_Pressure - dive->Water_Vapor_Pressure) * fraction_inert_gas;
 
                 for(i=0; i < 16; i++){
                         double Initial_Nitrogen_Pressure = dive->Nitrogen_Pressure[i];
@@ -605,11 +613,12 @@ double vpmb_crushing_pressure_helper(dive_state *dive, double Radius_Onset_of_Im
         double Low_Bound = B / A;
 
         double Ending_Radius;
-
+        double Crushing_Pressure_Pascals;
+        
         if (vpmb_radius_root_finder(A, B, C, Low_Bound, High_Bound, &Ending_Radius) < 0){
                 vpmb_failure();
         }
-        double Crushing_Pressure_Pascals = Gradient_Onset_of_Imperm_Pa + Ending_Ambient_Pressure_Pa - Amb_Press_Onset_of_Imperm_Pa +  Gas_Tension_Onset_of_Imperm_Pa * (1.0 - pow(Radius_Onset_of_Imperm_Molecule, 3) / pow(Ending_Radius, 3));
+        Crushing_Pressure_Pascals = Gradient_Onset_of_Imperm_Pa + Ending_Ambient_Pressure_Pa - Amb_Press_Onset_of_Imperm_Pa +  Gas_Tension_Onset_of_Imperm_Pa * (1.0 - pow(Radius_Onset_of_Imperm_Molecule, 3) / pow(Ending_Radius, 3));
 
         return (Crushing_Pressure_Pascals / ATM) * dive->Units_Factor;
 }
@@ -640,11 +649,12 @@ int vpmb_onset_of_impermeability(dive_state *dive, double Starting_Ambient_Press
 
         double Function_at_High_Bound = Ending_Ambient_Pressure -  Ending_Gas_Tension - Gradient_Onset_of_Imperm;
 
+        double Time, Differential_Change;
+        double Mid_Range_Ambient_Pressure, Gas_Tension_at_Mid_Range;
+
         if((Function_at_High_Bound * Function_at_Low_Bound) >= 0.0)
                 return  ROOTERROR;
 
-        double Time, Differential_Change;
-        double Mid_Range_Ambient_Pressure, Gas_Tension_at_Mid_Range;
 
         if( Function_at_Low_Bound < 0.0){
                 Time = Low_Bound;
@@ -654,9 +664,9 @@ int vpmb_onset_of_impermeability(dive_state *dive, double Starting_Ambient_Press
                 Time = High_Bound;
                 Differential_Change = Low_Bound - High_Bound;
         }
-        double Last_Diff_Change;
+
         for(j = 0; j < 100; j++){
-                Last_Diff_Change = Differential_Change;
+                double Last_Diff_Change = Differential_Change;
                 Differential_Change = Last_Diff_Change * 0.5;
                 double Mid_Range_Time = Time + Differential_Change;
 
@@ -696,7 +706,6 @@ void vpmb_calc_crushing_pressure(dive_state *dive, double Starting_Depth, double
         double Starting_Ambient_Pressure = Starting_Depth + dive->Barometric_Pressure;
         double Ending_Ambient_Pressure = Ending_Depth + dive->Barometric_Pressure;
 
-
         for(i = 0; i < 16; i++){
                 double Starting_Gas_Tension = dive->Initial_Helium_Pressure[i] + dive->Initial_Nitrogen_Pressure[i] + dive->Constant_Pressure_Other_Gases;
 
@@ -717,7 +726,10 @@ void vpmb_calc_crushing_pressure(dive_state *dive, double Starting_Depth, double
                         Crushing_Pressure_N2 = Ending_Ambient_Pressure - Ending_Gas_Tension;
                 }
                 else {
-
+                        double Ending_Ambient_Pressure_Pa;
+                        double Amb_Press_Onset_of_Imperm_Pa;
+                        double Gas_Tension_Onset_of_Imperm_Pa;
+                        
                         if (Starting_Gradient == Gradient_Onset_of_Imperm) {
                                 dive->Amb_Pressure_Onset_of_Imperm[i] = Starting_Ambient_Pressure;
                                 dive->Gas_Tension_Onset_of_Imperm[i] = Starting_Gas_Tension;
@@ -726,11 +738,11 @@ void vpmb_calc_crushing_pressure(dive_state *dive, double Starting_Depth, double
                         if (Starting_Gradient < Gradient_Onset_of_Imperm)
                                 vpmb_onset_of_impermeability(dive, Starting_Ambient_Pressure, Ending_Ambient_Pressure, Rate, i);
 
-                        double Ending_Ambient_Pressure_Pa = (Ending_Ambient_Pressure / dive->Units_Factor) * ATM;
+                        Ending_Ambient_Pressure_Pa = (Ending_Ambient_Pressure / dive->Units_Factor) * ATM;
 
-                        double Amb_Press_Onset_of_Imperm_Pa = (dive->Amb_Pressure_Onset_of_Imperm[i] / dive->Units_Factor) * ATM;
+                        Amb_Press_Onset_of_Imperm_Pa = (dive->Amb_Pressure_Onset_of_Imperm[i] / dive->Units_Factor) * ATM;
 
-                        double Gas_Tension_Onset_of_Imperm_Pa = (dive->Gas_Tension_Onset_of_Imperm[i] / dive->Units_Factor) * ATM;
+                        Gas_Tension_Onset_of_Imperm_Pa = (dive->Gas_Tension_Onset_of_Imperm[i] / dive->Units_Factor) * ATM;
 
                         Crushing_Pressure_He = vpmb_crushing_pressure_helper(dive, Radius_Onset_of_Imperm_He, Ending_Ambient_Pressure_Pa, Amb_Press_Onset_of_Imperm_Pa, Gas_Tension_Onset_of_Imperm_Pa, Gradient_Onset_of_Imperm_Pa);
 
@@ -745,18 +757,24 @@ void vpmb_calc_crushing_pressure(dive_state *dive, double Starting_Depth, double
 
 void vpmb_gas_loadings_ascent_descent(dive_state *dive, double Starting_Depth, double Ending_Depth, double Rate){
         int i;
+        double Starting_Ambient_Pressure;
+        double Initial_Inspired_He_Pressure;
+        double Initial_Inspired_N2_Pressure;
+        double Helium_Rate;
+        double Nitrogen_Rate;
+
         dive->Segment_Time = (Ending_Depth - Starting_Depth) / Rate;
 
         dive->Run_Time = dive->Run_Time + dive->Segment_Time;
         dive->Segment_Number = dive->Segment_Number + 1;
         dive->Ending_Ambient_Pressure = Ending_Depth + dive->Barometric_Pressure;
 
-        double Starting_Ambient_Pressure = Starting_Depth + dive->Barometric_Pressure;
-        double Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * dive->Fraction_Helium[dive->Mix_Number - 1];
+        Starting_Ambient_Pressure = Starting_Depth + dive->Barometric_Pressure;
+        Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * dive->Fraction_Helium[dive->Mix_Number - 1];
 
-        double Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * dive->Fraction_Nitrogen[dive->Mix_Number - 1];
-        double Helium_Rate = Rate * dive->Fraction_Helium[dive->Mix_Number - 1];
-        double Nitrogen_Rate = Rate * dive->Fraction_Nitrogen[dive->Mix_Number - 1];
+        Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - dive->Water_Vapor_Pressure) * dive->Fraction_Nitrogen[dive->Mix_Number - 1];
+        Helium_Rate = Rate * dive->Fraction_Helium[dive->Mix_Number - 1];
+        Nitrogen_Rate = Rate * dive->Fraction_Nitrogen[dive->Mix_Number - 1];
 
         for(i=0; i < 16; i++){
                 dive->Initial_Helium_Pressure[i] = dive->Helium_Pressure[i];
@@ -831,11 +849,12 @@ double vpmb_calculate_deco_gradient(dive_state *dive, double Allowable_Gradient_
         double High_Bound = Radius_First_Stop * pow((Amb_Press_First_Stop_Pascals / Amb_Press_Next_Stop_Pascals), (1.0/3.0));
 
         double Ending_Radius;
+        double Deco_Gradient_Pascals;
         if(vpmb_radius_root_finder(A, B, C, Low_Bound, High_Bound, &Ending_Radius) < 0){
                 vpmb_failure();
         }
 
-        double Deco_Gradient_Pascals = (2.0 * dive->Surface_Tension_Gamma) / Ending_Radius;
+        Deco_Gradient_Pascals = (2.0 * dive->Surface_Tension_Gamma) / Ending_Radius;
         return (Deco_Gradient_Pascals / ATM) * dive->Units_Factor;
 }
 
@@ -899,9 +918,9 @@ void vpmb_projected_ascent(dive_state *dive, double Starting_Depth, double Rate,
                         double Temp_Helium_Pressure = vpmb_schreiner_equation(Initial_Inspired_He_Pressure, Helium_Rate, Segment_Time, dive->Helium_Time_Constant[i], Initial_Helium_Pressure[i]);
 
                         double Temp_Nitrogen_Pressure = vpmb_schreiner_equation(Initial_Inspired_N2_Pressure, Nitrogen_Rate, Segment_Time, dive->Nitrogen_Time_Constant[i], Initial_Nitrogen_Pressure[i]);
+                        double Weighted_Allowable_Gradient;
 
                         Temp_Gas_Loading[i] = Temp_Helium_Pressure + Temp_Nitrogen_Pressure;
-                        double Weighted_Allowable_Gradient;
                         if (Temp_Gas_Loading[i] > 0.0)
                                 Weighted_Allowable_Gradient = (dive->Allowable_Gradient_He[i] * Temp_Helium_Pressure + dive->Allowable_Gradient_N2[i] * Temp_Nitrogen_Pressure) / Temp_Gas_Loading[i];
                         else
@@ -932,9 +951,9 @@ void vpmb_calc_ascent_ceiling(dive_state *dive) {
         double Compartment_Ascent_Ceiling[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
         for(i=0; i < 16; i++){
-                Gas_Loading = dive->Helium_Pressure[i] + dive->Nitrogen_Pressure[i];
-
                 double Weighted_Allowable_Gradient, Tolerated_Ambient_Pressure;
+
+                Gas_Loading = dive->Helium_Pressure[i] + dive->Nitrogen_Pressure[i];
 
                 if(Gas_Loading > 0.0){
                         Weighted_Allowable_Gradient = (dive->Allowable_Gradient_He[i] * dive->Helium_Pressure[i] +  dive->Allowable_Gradient_N2[i] * dive->Nitrogen_Pressure[i]) / (dive->Helium_Pressure[i] + dive->Nitrogen_Pressure[i]);
@@ -1182,11 +1201,11 @@ int vpmb_validate_data(json_input *input, dive_state *dive){
         dive->Critical_Radius_N2_Microns = input->Critical_Radius_N2_Microns;
         dive->Critical_Radius_He_Microns = input->Critical_Radius_He_Microns;
 
-        // nitrogen
+        /* nitrogen */
         if ((input->Critical_Radius_N2_Microns < 0.2) || (input->Critical_Radius_N2_Microns) > 1.35)
                 return INVALIDDATA;
 
-        //helium
+        /* helium */
         if ((input->Critical_Radius_He_Microns < 0.2) || (input->Critical_Radius_He_Microns > 1.35))
                 return INVALIDDATA;
 
@@ -1201,7 +1220,7 @@ int vpmb_initialize_data(json_input *input, dive_state *dive){
         dive->decomp_stops=NULL;
         dive->Start_of_Decompression_Zone = 0;
         dive->Wait_Time = 0;
-        /*This is to make sure the values are initialized before they get used for anything*/
+        /* This is to make sure the values are initialized before they get used for anything */
         dive->Fraction_Helium = NULL;
         dive->Fraction_Nitrogen = NULL;
         strlcpy(dive->Units, "" , sizeof(dive->Units));
@@ -1218,9 +1237,9 @@ int vpmb_initialize_data(json_input *input, dive_state *dive){
         dive->Regeneration_Time_Constant = input->Regeneration_Time_Constant;
         dive->Minimum_Deco_Stop_Time = input->Minimum_Deco_Stop_Time;
 
-        //INITIALIZE CONSTANTS/VARIABLES BASED ON SELECTION OF UNITS - FSW OR MSW
-        //fsw = feet of seawater, a unit of pressure
-        //msw = meters of seawater, a unit of pressure
+        /* INITIALIZE CONSTANTS/VARIABLES BASED ON SELECTION OF UNITS - FSW OR MSW */
+        /* fsw = feet of seawater, a unit of pressure */
+        /* msw = meters of seawater, a unit of pressure */
 
         if(dive->units_fsw == TRUE){
                 strlcpy(dive->Units_Word1,"fswg", strlen(dive->Units_Word1));
@@ -1236,7 +1255,7 @@ int vpmb_initialize_data(json_input *input, dive_state *dive){
                 dive->Water_Vapor_Pressure = 0.493; /* based on respiratory quotient of 0.8  (Schreiner value) */
         }
 
-        // INITIALIZE CONSTANTS/VARIABLES
+        /* INITIALIZE CONSTANTS/VARIABLES */
         dive->Constant_Pressure_Other_Gases = (input->Pressure_Other_Gases_mmHg / 760.0) * dive->Units_Factor;
         dive->Run_Time = 0.0;
         dive->Segment_Number = 0;
@@ -1309,6 +1328,7 @@ void vpmb_profile_code_loop(dive_state *dive, single_dive *current_dive){
                 int Profile_Code = current_profile->profile_code;
 
                 if(Profile_Code == 1){
+                        char Word[10] = "TEMP";
                         dive->Starting_Depth = current_profile->starting_depth;
                         dive->Ending_Depth = current_profile->ending_depth;
                         dive->Rate = current_profile->rate;
@@ -1318,8 +1338,7 @@ void vpmb_profile_code_loop(dive_state *dive, single_dive *current_dive){
                         if(dive->Ending_Depth > dive->Starting_Depth){
                                 vpmb_calc_crushing_pressure(dive, dive->Starting_Depth, dive->Ending_Depth, dive->Rate);
                         }
-                        // the error seems unnecessary
-                        char Word[10] = "TEMP";
+                        /* the error seems unnecessary */
                         if( dive->Ending_Depth > dive->Starting_Depth)
                                 strlcpy(Word, "Descent", strlen(Word));
                         else if (dive->Starting_Depth <  dive->Ending_Depth)
@@ -1327,7 +1346,7 @@ void vpmb_profile_code_loop(dive_state *dive, single_dive *current_dive){
                         else
                                 strlcpy(Word, "ERROR", strlen(Word));
 
-                        //dive->output_object.add_dive_profile_entry_descent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, Word, dive->Starting_Depth, dive->Ending_Depth, dive->Rate)
+                        /* dive->output_object.add_dive_profile_entry_descent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, Word, dive->Starting_Depth, dive->Ending_Depth, dive->Rate) */
                 }
                 else if( Profile_Code == 2){
                         dive->Depth = current_profile->depth;
@@ -1335,7 +1354,7 @@ void vpmb_profile_code_loop(dive_state *dive, single_dive *current_dive){
                         dive->Mix_Number = current_profile->gasmix;
                         vpmb_gas_loadings_constant_depth(dive, dive->Depth, dive->Run_Time_End_of_Segment);
 
-                        //dive->output_object.add_dive_profile_entry_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Depth)
+                        /* dive->output_object.add_dive_profile_entry_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Depth) */
                 }
                 else if(Profile_Code == 99)
                         break;
@@ -1372,7 +1391,7 @@ void vpmb_deco_stop_loop_block_within_critical_volume_loop(dive_state *dive){
 
 void add_decomp_stop(dive_state *dive, double time, double depth, direction dir){
         if(dive->Real_Time_Decompression == TRUE){
-                //printf("WOOOOOT %d", dive->decomp_stop_index);
+                /* printf("WOOOOOT %d", dive->decomp_stop_index); */
                 dive->decomp_stops[dive->decomp_stop_index].time = time;
                 dive->decomp_stops[dive->decomp_stop_index].depth = depth;
                 dive->decomp_stops[dive->decomp_stop_index].ascent_or_const = dir;
@@ -1405,7 +1424,7 @@ void vpmb_critical_volume_decision_tree(dive_state *dive){
                 vpmb_gas_loadings_ascent_descent(dive, dive->Starting_Depth, dive->Deco_Stop_Depth, dive->Rate);
                 vpmb_calc_max_actual_gradient(dive, dive->Deco_Stop_Depth);
 
-                //dive->output_object.add_decompression_profile_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Rate)
+                /* dive->output_object.add_decompression_profile_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Rate) */
                 /* dive->decomp_stops[dive->decomp_stop_index].time = dive->Run_Time; */
                 /* dive->decomp_stops[dive->decomp_stop_index].depth = dive->dive->Deco_Stop_Depth; */
                 /* dive->decomp_stop_index++; */
@@ -1432,7 +1451,7 @@ void vpmb_critical_volume_decision_tree(dive_state *dive){
                         dive->Stop_Time = dive->Run_Time - dive->Last_Run_Time;
 
                 if (trunc(dive->Minimum_Deco_Stop_Time) == dive->Minimum_Deco_Stop_Time){
-                        //dive->output_object.add_decompression_profile_constant(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, int(dive->Deco_Stop_Depth), int(dive->Stop_Time))
+                        /* dive->output_object.add_decompression_profile_constant(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, int(dive->Deco_Stop_Depth), int(dive->Stop_Time)) */
                         /* dive->decomp_stops[dive->decomp_stop_index].time = dive->Run_Time; */
                         /* dive->decomp_stops[dive->decomp_stop_index].depth = dive->dive->Deco_Stop_Depth; */
                         /* dive->decomp_stop_index++; */
@@ -1440,7 +1459,7 @@ void vpmb_critical_volume_decision_tree(dive_state *dive){
 
                 }
                 else{
-                        //dive->output_object.add_decompression_profile_constant(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Stop_Time)
+                        /* dive->output_object.add_decompression_profile_constant(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Stop_Time) */
                         /* dive->decomp_stops[dive->decomp_stop_index].time = dive->Run_Time; */
                         /* dive->decomp_stops[dive->decomp_stop_index].depth = dive->dive->Deco_Stop_Depth; */
                         /* dive->decomp_stop_index++; */
@@ -1485,7 +1504,7 @@ int critical_volume_loop(dive_state *dive){
                         dive->Ending_Depth = 0.0;
                         vpmb_gas_loadings_ascent_descent(dive, dive->Starting_Depth, dive->Ending_Depth, dive->Rate);
 
-                        //self->output_object.add_decompression_profile_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Rate);
+                        /* self->output_object.add_decompression_profile_ascent(dive->Segment_Number, dive->Segment_Time, dive->Run_Time, dive->Mix_Number, dive->Deco_Stop_Depth, dive->Rate); */
                         add_decomp_stop(dive, dive->Run_Time, dive->Deco_Stop_Depth, ASCENT);
 
                         break;
@@ -1635,7 +1654,7 @@ int vpmb_set_gas_mixes(dive_state *dive, single_dive *current_dive){
                 dive->Fraction_Nitrogen[i] = current_gasmix->fraction_N2;
                 dive->Fraction_Helium[i] = current_gasmix->fraction_He;
 
-                //make sure the fractions add up
+                /* make sure the fractions add up */
                 if((Fraction_Oxygen + dive->Fraction_Nitrogen[i] + dive->Fraction_Helium[i]) != 1.0)
                         return BADJSON;
 
@@ -1650,6 +1669,8 @@ void vpmb_repetitive_dive_loop(dive_state *dive, json_input *input){
         single_dive *current_dive;
         dive->Real_Time_Decompression=FALSE;
         for(i=0; i < input->number_of_dives; i++){
+                int Repetitive_Dive_Flag;
+                
                 current_dive = &(input->dives[i]);
                 //self.output_object.new_dive(dive["desc"])
 
@@ -1657,7 +1678,7 @@ void vpmb_repetitive_dive_loop(dive_state *dive, json_input *input){
                 vpmb_profile_code_loop(dive, current_dive);
                 vpmb_decompression_loop(dive, current_dive);
 
-                int Repetitive_Dive_Flag = current_dive->repetitive_code;
+                Repetitive_Dive_Flag = current_dive->repetitive_code;
 
                 if(Repetitive_Dive_Flag == 0)
                         continue;
@@ -1676,7 +1697,7 @@ void vpmb_repetitive_dive_loop(dive_state *dive, json_input *input){
                         dive->Run_Time = 0.0;
                         dive->Segment_Number = 0;
 
-                        // may not be needed anymore
+                         /* may not be needed anymore */
                         continue;
                 }
         }
@@ -1686,7 +1707,7 @@ void vpmb_repetitive_dive_loop(dive_state *dive, json_input *input){
 direction vpmb_current_direction(dive_state *dive, double increment_time){
         double high = dive->Last_Direction_Depth + (meters_per_minute_change * increment_time), low = dive->Last_Direction_Depth - (meters_per_minute_change * increment_time);
 
-        //double rate = (dive->Depth - dive->Last_Direction_Depth ) / increment_time;
+        /* double rate = (dive->Depth - dive->Last_Direction_Depth ) / increment_time; */
         if((dive->Depth <= high) && (dive->Depth >= low)){
                 dive->Last_Direction_Depth = dive->Depth;
                 return CONSTANT;
@@ -1727,6 +1748,7 @@ int vpmb_finished_constant_depth_profile(dive_state *dive, dive_profile *current
 double vpmb_find_start_of_decompression_zone(dive_state *dive, dive_profile *current_profile){
         int i;//, j;
 
+        ascent_summary *current_ascent;
         dive_state *dive_cpy = malloc(sizeof(dive_state));
         memcpy (dive_cpy, dive,sizeof(dive_state));
 
@@ -1754,7 +1776,7 @@ double vpmb_find_start_of_decompression_zone(dive_state *dive, dive_profile *cur
         /* } */
 
         //dive_profile *current_profile = &(current_dive->dive_profiles[2]);
-        ascent_summary *current_ascent = &(current_profile->ascents[0]);
+        current_ascent = &(current_profile->ascents[0]);
 
         dive_cpy->Starting_Depth = dive_cpy->Depth; //dive_cpy->Depth_Change[0];
         dive_cpy->Mix_Number = current_ascent->gasmix; //dive_cpy->Mix_Change[0];
@@ -1804,10 +1826,10 @@ void vpmb_free_dive_state(dive_state *dive){
 }
 
 void vpmb_calculate_decompression_stops(dive_state *dive, dive_profile *current_profile){
+        int i, j;
         dive_state *dive_cpy = malloc(sizeof(dive_state));
         memcpy(dive_cpy, dive, sizeof(dive_state));
 
-        int i,j;
         vpmb_nuclear_regeneration(dive_cpy, dive_cpy->Run_Time);
 
         vpmb_calc_initial_allowable_gradient(dive_cpy);

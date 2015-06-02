@@ -18,4 +18,4 @@ def build(bld):
                 target='vpmb',
                 lib = ['m'],
                 linkflags = ['-ggdb3'],
-                cflags = ['-W', '-Wall', '-Wextra'])
+                cflags = ['-W', '-Wall', '-Wextra', '-Wpedantic'])

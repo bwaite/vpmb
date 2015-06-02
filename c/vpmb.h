@@ -36,7 +36,7 @@
 #include "cJSON.h"
 #include "utils.h"
 
-//structs
+/* structs */
 
 typedef short BOOL;
 #ifndef _NDS_BUILD_
@@ -230,21 +230,21 @@ typedef struct {
 } single_dive;
 
 typedef struct {
-        //input
+        /* input*/
         single_dive *dives;
         int number_of_dives;
 
-        //altitude
+        /* altitude */
         double Altitude_of_Dive;
         char Diver_Acclimatized_at_Altitude[4];
         double Starting_Acclimatized_Altitude;
         double Ascent_to_Altitude_Hours;
         double Hours_at_Altitude_Before_Dive;
 
-        //settings
-        char Units[4]; //"fsw" or "msw"
+        /* settings */
+        char Units[4]; /* "fsw" or "msw" */
         BOOL SetPoint_Is_Bar;
-        char Altitude_Dive_Algorithm[4]; //"OFF" or "ON"
+        char Altitude_Dive_Algorithm[4]; /* "OFF" or "ON" */
         double Minimum_Deco_Stop_Time;
         double Critical_Radius_N2_Microns;
         double Critical_Radius_He_Microns;
