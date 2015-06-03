@@ -2,6 +2,8 @@
 tests/*.pyc
 CMakeCache.txt
 CMakeFiles/
+Makefile
+cmake_install.cmake
 gmon.out
 c/doxygen
 c/build
