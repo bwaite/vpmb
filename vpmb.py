@@ -1047,10 +1047,7 @@ class DiveState(object):
 
             compartment_ascent_ceiling[i] = tolerated_ambient_pressure - self.Barometric_Pressure
 
-        self.Ascent_Ceiling_Depth = compartment_ascent_ceiling[0]
-
-        for i in range(1, ARRAY_LENGTH):
-            self.Ascent_Ceiling_Depth = max(self.Ascent_Ceiling_Depth, compartment_ascent_ceiling[i])
+        self.Ascent_Ceiling_Depth = max(compartment_ascent_ceiling)
 
     def projected_ascent(self, starting_depth, rate, step_size):
         """
@@ -1287,10 +1284,7 @@ class DiveState(object):
 
             compartment_deco_ceiling[i] = tolerated_ambient_pressure - self.Barometric_Pressure
 
-        deco_ceiling_depth = compartment_deco_ceiling[0]
-        # TODO: can replace these for loops with just max(compartment_deco_ceiling)
-        for i in range(1, ARRAY_LENGTH):
-            deco_ceiling_depth = max(deco_ceiling_depth, compartment_deco_ceiling[i])
+        deco_ceiling_depth = max(compartment_deco_ceiling)
 
         return deco_ceiling_depth
 
@@ -2234,7 +2228,7 @@ class HtmlOutput(object):
                 f.write(output)
 
         else:
-            print output
+            print(output)
 
     def html_description_time_and_gasmix(self, dive):
         return_string = ""
