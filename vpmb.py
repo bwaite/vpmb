@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright 2010, Bryan Waite, Erik C. Baker. All rights reserved.
 # Redistribution and use in source and binary forms, with or without modification, are
@@ -37,6 +37,7 @@ class AltitudeException(Exception):
     """Thrown when altitude is invalid, or diver acclimatized is invalid."""
     def __init__(self, value):
         self.value = value
+        super(AltitudeException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -46,6 +47,7 @@ class MaxIterationException(Exception):
     """Thrown when root finding fails."""
     def __init__(self, value):
         self.value = value
+        super(MaxIterationException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -55,6 +57,7 @@ class InputFileException(Exception):
     """Thrown when there are errors with the input file values."""
     def __init__(self, value):
         self.value = value
+        super(InputFileException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -64,6 +67,7 @@ class DecompressionStepException(Exception):
     """Thrown when the decompression step is too large."""
     def __init__(self, value):
         self.value = value
+        super(DecompressionStepException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -73,6 +77,7 @@ class RootException(Exception):
     """Thrown when root calculated is not within brackets"""
     def __init__(self, value):
         self.value = value
+        super(RootException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -82,6 +87,7 @@ class OffGassingException(Exception):
     """Thrown when Off Gassing gradient is too small"""
     def __init__(self, value):
         self.value = value
+        super(OffGassingException, self).__init__()
 
     def __str__(self):
         return repr(self.value)
@@ -103,9 +109,8 @@ class DiveState(object):
             data = json_input
         else:
             # load the file data
-            input_file = open(input_file_name)
-            data = json.loads(input_file.read())
-            input_file.close()
+            with open(input_file_name) as input_file:
+                data = json.loads(input_file.read())
 
         self.input_values = data["input"]
         self.settings_values = data["settings"]
@@ -1084,7 +1089,7 @@ class DiveState(object):
             Initial_Helium_Pressure[i] = self.Helium_Pressure[i]
             Initial_Nitrogen_Pressure[i] = self.Nitrogen_Pressure[i]
 
-        while(True):
+        while True:
             Ending_Ambient_Pressure = New_Ambient_Pressure
 
             Segment_Time = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Rate
@@ -1212,7 +1217,7 @@ class DiveState(object):
                 if (Inspired_Helium_Pressure + Inspired_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases - Weighted_Allowable_Gradient) > (Next_Stop + self.Barometric_Pressure):
                     raise OffGassingException("ERROR! OFF-GASSING GRADIENT IS TOO SMALL TO DECOMPRESS AT THE %f STOP. Next stop: %f" % (Deco_Stop_Depth, Next_Stop))
 
-        while(True):
+        while True:
             for i in range(16):
 
                 Initial_Helium_Pressure = self.Helium_Pressure[i]
@@ -1689,7 +1694,7 @@ class DiveState(object):
 
         Returns: None
         """
-        while(True):
+        while True:
             self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
 
             if self.Deco_Stop_Depth <= 0.0:
@@ -1746,7 +1751,7 @@ class DiveState(object):
 
         # DECO STOP LOOP BLOCK FOR FINAL DECOMPRESSION SCHEDULE
 
-        while(True):
+        while True:
             self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
             # DURING FINAL DECOMPRESSION SCHEDULE PROCESS, COMPUTE MAXIMUM ACTUAL
             # SUPERSATURATION GRADIENT RESULTING IN EACH COMPARTMENT
@@ -1840,7 +1845,7 @@ class DiveState(object):
 
         Returns: None
         """
-        while(True):
+        while True:
             # CALCULATE INITIAL ASCENT CEILING BASED ON ALLOWABLE SUPERSATURATION
             # GRADIENTS AND SET FIRST DECO STOP.  CHECK TO MAKE SURE THAT SELECTED STEP
             # SIZE WILL NOT ROUND UP FIRST STOP TO A DEPTH THAT IS BELOW THE DECO ZONE.
@@ -2231,9 +2236,9 @@ class Output(object):
 
         output += self.html_footer()
         if filename:
-            f = open(filename, "w")
-            f.write(output)
-            f.close()
+            with open(filename, "w") as f:
+                f.write(output)
+
         else:
             print output
 
@@ -2457,9 +2462,12 @@ def RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound):
     Derivative_of_Function = Ending_Radius * (Ending_Radius * 3.0 * A - 2.0 * B)
 
     for i in range(100):
-        if((((Ending_Radius - Radius_at_High_Bound) * Derivative_of_Function - Function) *
-            ((Ending_Radius - Radius_at_Low_Bound) * Derivative_of_Function - Function) >= 0.0)
-           or (abs(2.0 * Function) > (abs(Last_Diff_Change * Derivative_of_Function)))):
+        # TODO: Choose better name for the 'a' and 'b' checks
+        a = (((Ending_Radius - Radius_at_High_Bound) * Derivative_of_Function - Function) *
+             ((Ending_Radius - Radius_at_Low_Bound) * Derivative_of_Function - Function) >= 0.0)
+        b = (abs(2.0 * Function) > (abs(Last_Diff_Change * Derivative_of_Function)))
+
+        if a or b:
 
             Last_Diff_Change = Differential_Change
             Differential_Change = 0.5 * (Radius_at_High_Bound - Radius_at_Low_Bound)
@@ -2574,8 +2582,8 @@ if __name__ == '__main__':
     program_state.main()
 
     if args.json_output:
-        json_out = open(args.json_output, "w")
-        program_state.output_object.to_json(json_out)
-        json_out.close()
+        with open(args.json_output, "w") as json_out:
+            program_state.output_object.to_json(json_out)
+
     else:
         program_state.output_object.to_html(args.output_file_name)
