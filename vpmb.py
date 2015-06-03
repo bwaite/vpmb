@@ -104,7 +104,6 @@ class DiveState(object):
             raise ValueError("""DiveState must be given a file name (to load the input from), or
             raw json data""")
 
-        data = None
         if json_input:
             data = json_input
         else:
@@ -115,7 +114,7 @@ class DiveState(object):
         self.input_values = data["input"]
         self.settings_values = data["settings"]
         self.altitude_values = data["altitude"]
-        self.output_object = Output(self)
+        self.output_object = HtmlOutput(self)
 
         # init the instance variables
         # strings
@@ -255,7 +254,7 @@ class DiveState(object):
     def get_json(self):
         return self.output_object.get_json()
 
-    def GAS_LOADINGS_SURFACE_INTERVAL(self, Surface_Interval_Time):
+    def gas_loadings_surface_interval(self, surface_interval_time):
         """
         Purpose: This subprogram calculates the gas loading (off-gassing) during
         a surface interval.
@@ -274,9 +273,9 @@ class DiveState(object):
             Temp_Helium_Pressure = self.Helium_Pressure[i]
             Temp_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
 
-            self.Helium_Pressure[i] = HALDANE_EQUATION(Temp_Helium_Pressure, Inspired_Helium_Pressure, self.Helium_Time_Constant[i], Surface_Interval_Time)
+            self.Helium_Pressure[i] = haldane_equation(Temp_Helium_Pressure, Inspired_Helium_Pressure, self.Helium_Time_Constant[i], surface_interval_time)
 
-            self.Nitrogen_Pressure[i] = HALDANE_EQUATION(Temp_Nitrogen_Pressure, Inspired_Nitrogen_Pressure, self.Nitrogen_Time_Constant[i], Surface_Interval_Time)
+            self.Nitrogen_Pressure[i] = haldane_equation(Temp_Nitrogen_Pressure, Inspired_Nitrogen_Pressure, self.Nitrogen_Time_Constant[i], surface_interval_time)
 
     def _new_critical_radius(self, Max_Actual_Gradient_Pascals, Adj_Crush_Pressure_Pascals):
         """Calculates the new radius for the `VPM_REPETITIVE_ALGORITHM`
@@ -286,7 +285,7 @@ class DiveState(object):
         """
         return ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma))) / (Max_Actual_Gradient_Pascals * self.Skin_Compression_GammaC - self.Surface_Tension_Gamma * Adj_Crush_Pressure_Pascals)
 
-    def VPM_REPETITIVE_ALGORITHM(self, Surface_Interval_Time):
+    def vpm_repetitive_algorithm(self, surface_interval_time):
         """
         Purpose: This subprogram implements the VPM Repetitive Algorithm that was
         envisioned by Professor David E. Yount only months before his passing.
@@ -299,27 +298,27 @@ class DiveState(object):
         """
 
         for i in range(16):
-            Max_Actual_Gradient_Pascals = (self.Max_Actual_Gradient[i] / self.Units_Factor) * self.ATM
+            max_actual_gradient_pascals = (self.Max_Actual_Gradient[i] / self.Units_Factor) * self.ATM
 
-            Adj_Crush_Pressure_He_Pascals = (self.Adjusted_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
-            Adj_Crush_Pressure_N2_Pascals = (self.Adjusted_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
+            adj_crush_pressure_he_pascals = (self.Adjusted_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
+            adj_crush_pressure_n2_pascals = (self.Adjusted_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
 
             if self.Max_Actual_Gradient[i] > self.Initial_Allowable_Gradient_N2[i]:
-                New_Critical_Radius_N2 = self._new_critical_radius(Max_Actual_Gradient_Pascals, Adj_Crush_Pressure_N2_Pascals)
+                New_Critical_Radius_N2 = self._new_critical_radius(max_actual_gradient_pascals, adj_crush_pressure_n2_pascals)
 
-                self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i] + (self.Initial_Critical_Radius_N2[i] - New_Critical_Radius_N2) * exp(-Surface_Interval_Time / self.Regeneration_Time_Constant)
+                self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i] + (self.Initial_Critical_Radius_N2[i] - New_Critical_Radius_N2) * exp(-surface_interval_time / self.Regeneration_Time_Constant)
 
             else:
                 self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i]
 
             if self.Max_Actual_Gradient[i] > self.Initial_Allowable_Gradient_He[i]:
-                New_Critical_Radius_He = self._new_critical_radius(Max_Actual_Gradient_Pascals, Adj_Crush_Pressure_He_Pascals)
+                new_critical_radius_he = self._new_critical_radius(max_actual_gradient_pascals, adj_crush_pressure_he_pascals)
 
-                self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i] + (self.Initial_Critical_Radius_He[i] - New_Critical_Radius_He) * exp(-Surface_Interval_Time / self.Regeneration_Time_Constant)
+                self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i] + (self.Initial_Critical_Radius_He[i] - new_critical_radius_he) * exp(-surface_interval_time / self.Regeneration_Time_Constant)
             else:
                 self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i]
 
-    def CALC_MAX_ACTUAL_GRADIENT(self, Deco_Stop_Depth):
+    def calc_max_actual_gradient(self, deco_stop_depth):
         """
         Purpose: This subprogram calculates the actual supersaturation gradient
         obtained in each compartment as a result of the ascent profile during
@@ -334,9 +333,9 @@ class DiveState(object):
 
         The max actual gradients are later used by the VPM Repetitive Algorithm to
         determine if adjustments to the critical radii are required.  If the max
-        actual gradient did not exceed the initial alllowable gradient, then no
+        actual gradient did not exceed the initial allowable gradient, then no
         adjustment will be made.  However, if the max actual gradient did exceed
-        the intitial allowable gradient, such as permitted by the Critical Volume
+        the initial allowable gradient, such as permitted by the Critical Volume
         Algorithm, then the critical radius will be adjusted (made larger) on the
         repetitive dive to compensate for the bubbling that was allowed on the
         previous dive.  The use of the max actual gradients is intended to prevent
@@ -352,13 +351,13 @@ class DiveState(object):
         # application, so the values must be equal to or greater than zero.
 
         for i in range(16):
-            Compartment_Gradient = (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases) - (Deco_Stop_Depth + self.Barometric_Pressure)
-            if Compartment_Gradient <= 0.0:
-                Compartment_Gradient = 0.0
+            compartment_gradient = (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases) - (deco_stop_depth + self.Barometric_Pressure)
+            if compartment_gradient <= 0.0:
+                compartment_gradient = 0.0
 
-            self.Max_Actual_Gradient[i] = max(self.Max_Actual_Gradient[i], Compartment_Gradient)
+            self.Max_Actual_Gradient[i] = max(self.Max_Actual_Gradient[i], compartment_gradient)
 
-    def VPM_ALTITUDE_DIVE_ALGORITHM(self, altitude_settings):
+    def vpm_altitude_dive_algorithm(self, altitude_settings):
         """
         Purpose:  This subprogram updates gas loadings and adjusts critical radii
         (as required) based on whether or not diver is acclimatized at altitude or
@@ -380,11 +379,11 @@ class DiveState(object):
         Returns: None
         """
 
-        Ascent_to_Altitude_Time = altitude_settings['Ascent_to_Altitude_Hours'] * 60.0
-        Time_at_Altitude_Before_Dive = altitude_settings['Hours_at_Altitude_Before_Dive'] * 60.0
+        ascent_to_altitude_time = altitude_settings['Ascent_to_Altitude_Hours'] * 60.0
+        time_at_altitude_before_dive = altitude_settings['Hours_at_Altitude_Before_Dive'] * 60.0
 
         if self.Diver_Acclimatized:
-            self.Barometric_Pressure = CALC_BAROMETRIC_PRESSURE(altitude_settings['Altitude_of_Dive'], self.units_fsw)
+            self.Barometric_Pressure = calc_barometric_pressure(altitude_settings['Altitude_of_Dive'], self.units_fsw)
 
             for i in range(16):
                 self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i]
@@ -395,75 +394,75 @@ class DiveState(object):
             if (altitude_settings['Starting_Acclimatized_Altitude'] >= altitude_settings['Altitude_of_Dive']) or (altitude_settings['Starting_Acclimatized_Altitude'] < 0.0):
                 raise AltitudeException("ERROR! STARTING ACCLIMATIZED ALTITUDE MUST BE LESS THAN ALTITUDE OF DIVE AND GREATER THAN OR EQUAL TO ZERO")
 
-            self.Barometric_Pressure = CALC_BAROMETRIC_PRESSURE(altitude_settings['Starting_Acclimatized_Altitude'], self.units_fsw)
+            self.Barometric_Pressure = calc_barometric_pressure(altitude_settings['Starting_Acclimatized_Altitude'], self.units_fsw)
 
-            Starting_Ambient_Pressure = self.Barometric_Pressure
+            starting_ambient_pressure = self.Barometric_Pressure
 
             for i in range(16):
                 self.Helium_Pressure[i] = 0.0
                 self.Nitrogen_Pressure[i] = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
 
-            self.Barometric_Pressure = CALC_BAROMETRIC_PRESSURE(altitude_settings['Altitude_of_Dive'], self.units_fsw)
-            Ending_Ambient_Pressure = self.Barometric_Pressure
-            Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
-            Rate = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Ascent_to_Altitude_Time
-            Nitrogen_Rate = Rate * self.fraction_inert_gas
+            self.Barometric_Pressure = calc_barometric_pressure(altitude_settings['Altitude_of_Dive'], self.units_fsw)
+            ending_ambient_pressure = self.Barometric_Pressure
+            initial_inspired_n2_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
+            rate = (ending_ambient_pressure - starting_ambient_pressure) / ascent_to_altitude_time
+            nitrogen_rate = rate * self.fraction_inert_gas
 
             for i in range(16):
-                Initial_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
+                initial_nitrogen_pressure = self.Nitrogen_Pressure[i]
 
-                self.Nitrogen_Pressure[i] = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, Ascent_to_Altitude_Time, self.Nitrogen_Time_Constant[i], Initial_Nitrogen_Pressure)
+                self.Nitrogen_Pressure[i] = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, ascent_to_altitude_time, self.Nitrogen_Time_Constant[i], initial_nitrogen_pressure)
 
-                Compartment_Gradient = (self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases) - Ending_Ambient_Pressure
+                compartment_gradient = (self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases) - ending_ambient_pressure
 
-                Compartment_Gradient_Pascals = (Compartment_Gradient / self.Units_Factor) * self.ATM
+                compartment_gradient_pascals = (compartment_gradient / self.Units_Factor) * self.ATM
 
-                Gradient_He_Bubble_Formation = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma)) / (self.Initial_Critical_Radius_He[i] * self.Skin_Compression_GammaC))
+                gradient_he_bubble_formation = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma)) / (self.Initial_Critical_Radius_He[i] * self.Skin_Compression_GammaC))
 
-                if Compartment_Gradient_Pascals > Gradient_He_Bubble_Formation:
+                if compartment_gradient_pascals > gradient_he_bubble_formation:
 
-                    New_Critical_Radius_He = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma))) / (Compartment_Gradient_Pascals * self.Skin_Compression_GammaC)
+                    new_critical_radius_he = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma))) / (compartment_gradient_pascals * self.Skin_Compression_GammaC)
 
-                    self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i] + (self.Initial_Critical_Radius_He[i] - New_Critical_Radius_He) * exp(-Time_at_Altitude_Before_Dive / self.Regeneration_Time_Constant)
+                    self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i] + (self.Initial_Critical_Radius_He[i] - new_critical_radius_he) * exp(-time_at_altitude_before_dive / self.Regeneration_Time_Constant)
 
                     self.Initial_Critical_Radius_He[i] = self.Adjusted_Critical_Radius_He[i]
 
                 else:
-                    Ending_Radius_He = 1.0 / (Compartment_Gradient_Pascals / (2.0 * (self.Surface_Tension_Gamma - self.Skin_Compression_GammaC)) + 1.0 / self.Initial_Critical_Radius_He[i])
+                    ending_radius_he = 1.0 / (compartment_gradient_pascals / (2.0 * (self.Surface_Tension_Gamma - self.Skin_Compression_GammaC)) + 1.0 / self.Initial_Critical_Radius_He[i])
 
-                    Regenerated_Radius_He = self.Initial_Critical_Radius_He[i] + (Ending_Radius_He - self.Initial_Critical_Radius_He[i]) * exp(-Time_at_Altitude_Before_Dive / self.Regeneration_Time_Constant)
+                    regenerated_radius_he = self.Initial_Critical_Radius_He[i] + (ending_radius_he - self.Initial_Critical_Radius_He[i]) * exp(-time_at_altitude_before_dive / self.Regeneration_Time_Constant)
 
-                    self.Initial_Critical_Radius_He[i] = Regenerated_Radius_He
+                    self.Initial_Critical_Radius_He[i] = regenerated_radius_he
 
                     self.Adjusted_Critical_Radius_He[i] = self.Initial_Critical_Radius_He[i]
 
-                Gradient_N2_Bubble_Formation = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma)) / (self.Initial_Critical_Radius_N2[i] * self.Skin_Compression_GammaC))
+                gradient_n2_bubble_formation = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma)) / (self.Initial_Critical_Radius_N2[i] * self.Skin_Compression_GammaC))
 
-                if Compartment_Gradient_Pascals > Gradient_N2_Bubble_Formation:
+                if compartment_gradient_pascals > gradient_n2_bubble_formation:
 
-                    New_Critical_Radius_N2 = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma))) / (Compartment_Gradient_Pascals * self.Skin_Compression_GammaC)
+                    new_critical_radius_n2 = ((2.0 * self.Surface_Tension_Gamma * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma))) / (compartment_gradient_pascals * self.Skin_Compression_GammaC)
 
-                    self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i] + (self.Initial_Critical_Radius_N2[i] - New_Critical_Radius_N2) * exp(-Time_at_Altitude_Before_Dive / self.Regeneration_Time_Constant)
+                    self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i] + (self.Initial_Critical_Radius_N2[i] - new_critical_radius_n2) * exp(-time_at_altitude_before_dive / self.Regeneration_Time_Constant)
 
                     self.Initial_Critical_Radius_N2[i] = self.Adjusted_Critical_Radius_N2[i]
 
                 else:
-                    Ending_Radius_N2 = 1.0 / (Compartment_Gradient_Pascals / (2.0 * (self.Surface_Tension_Gamma - self.Skin_Compression_GammaC)) + 1.0 / self.Initial_Critical_Radius_N2[i])
+                    ending_radius_n2 = 1.0 / (compartment_gradient_pascals / (2.0 * (self.Surface_Tension_Gamma - self.Skin_Compression_GammaC)) + 1.0 / self.Initial_Critical_Radius_N2[i])
 
-                    Regenerated_Radius_N2 = self.Initial_Critical_Radius_N2[i] + (Ending_Radius_N2 - self.Initial_Critical_Radius_N2[i]) * exp(-Time_at_Altitude_Before_Dive / self.Regeneration_Time_Constant)
+                    regenerated_radius_n2 = self.Initial_Critical_Radius_N2[i] + (ending_radius_n2 - self.Initial_Critical_Radius_N2[i]) * exp(-time_at_altitude_before_dive / self.Regeneration_Time_Constant)
 
-                    self.Initial_Critical_Radius_N2[i] = Regenerated_Radius_N2
+                    self.Initial_Critical_Radius_N2[i] = regenerated_radius_n2
 
                     self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i]
 
-            Inspired_Nitrogen_Pressure = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
+            inspired_nitrogen_pressure = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
 
             for i in range(16):
-                Initial_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
+                initial_nitrogen_pressure = self.Nitrogen_Pressure[i]
 
-                self.Nitrogen_Pressure[i] = HALDANE_EQUATION(Initial_Nitrogen_Pressure, Inspired_Nitrogen_Pressure, self.Nitrogen_Time_Constant[i], Time_at_Altitude_Before_Dive)
+                self.Nitrogen_Pressure[i] = haldane_equation(initial_nitrogen_pressure, inspired_nitrogen_pressure, self.Nitrogen_Time_Constant[i], time_at_altitude_before_dive)
 
-    def GAS_LOADINGS_ASCENT_DESCENT(self, Starting_Depth, Ending_Depth, Rate):
+    def gas_loadings_ascent_descent(self, starting_depth, ending_depth, rate):
         """
          Purpose: This subprogram applies the Schreiner equation to update the
          gas loadings (partial pressures of helium and nitrogen) in the half-time
@@ -480,25 +479,25 @@ class DiveState(object):
 
          Returns: None
          """
-        self.Segment_Time = float(Ending_Depth - Starting_Depth) / Rate
+        self.Segment_Time = float(ending_depth - starting_depth) / rate
 
         self.Run_Time = self.Run_Time + self.Segment_Time
         self.Segment_Number = self.Segment_Number + 1
-        self.Ending_Ambient_Pressure = Ending_Depth + self.Barometric_Pressure
+        self.Ending_Ambient_Pressure = ending_depth + self.Barometric_Pressure
 
-        Starting_Ambient_Pressure = Starting_Depth + self.Barometric_Pressure
-        Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
-        Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
-        Helium_Rate = Rate * self.Fraction_Helium[self.Mix_Number - 1]
-        Nitrogen_Rate = Rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        starting_ambient_pressure = starting_depth + self.Barometric_Pressure
+        initial_inspired_he_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        initial_inspired_n2_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        helium_rate = rate * self.Fraction_Helium[self.Mix_Number - 1]
+        nitrogen_rate = rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
         for i in range(16):
             self.Initial_Helium_Pressure[i] = self.Helium_Pressure[i]
             self.Initial_Nitrogen_Pressure[i] = self.Nitrogen_Pressure[i]
 
-            self.Helium_Pressure[i] = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, self.Segment_Time, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
+            self.Helium_Pressure[i] = schreiner_equation(initial_inspired_he_pressure, helium_rate, self.Segment_Time, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
 
-            self.Nitrogen_Pressure[i] = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, self.Segment_Time, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
+            self.Nitrogen_Pressure[i] = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, self.Segment_Time, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
 
     def _crushing_pressure_helper(self, Radius_Onset_of_Imperm_Molecule, Ending_Ambient_Pressure_Pa, Amb_Press_Onset_of_Imperm_Pa, Gas_Tension_Onset_of_Imperm_Pa, Gradient_Onset_of_Imperm_Pa):
         """Calculate the crushing pressure for a molecule(He or N2) (a helper for CALC_CRUSHING_PRESSURE)
@@ -512,15 +511,15 @@ class DiveState(object):
         B = 2.0 * (self.Skin_Compression_GammaC - self.Surface_Tension_Gamma)
         C = Gas_Tension_Onset_of_Imperm_Pa * Radius_Onset_of_Imperm_Molecule ** 3
 
-        High_Bound = Radius_Onset_of_Imperm_Molecule
-        Low_Bound = B / A
+        high_bound = Radius_Onset_of_Imperm_Molecule
+        low_bound = B / A
 
-        Ending_Radius = RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound)
-        Crushing_Pressure_Pascals = Gradient_Onset_of_Imperm_Pa + Ending_Ambient_Pressure_Pa - Amb_Press_Onset_of_Imperm_Pa + Gas_Tension_Onset_of_Imperm_Pa * (1.0 - Radius_Onset_of_Imperm_Molecule ** 3 / Ending_Radius ** 3)
+        ending_radius = radius_root_finder(A, B, C, low_bound, high_bound)
+        crushing_pressure_pascals = Gradient_Onset_of_Imperm_Pa + Ending_Ambient_Pressure_Pa - Amb_Press_Onset_of_Imperm_Pa + Gas_Tension_Onset_of_Imperm_Pa * (1.0 - Radius_Onset_of_Imperm_Molecule ** 3 / ending_radius ** 3)
 
-        return (Crushing_Pressure_Pascals / self.ATM) * self.Units_Factor
+        return (crushing_pressure_pascals / self.ATM) * self.Units_Factor
 
-    def CALC_CRUSHING_PRESSURE(self, Starting_Depth, Ending_Depth, Rate):
+    def calc_crushing_pressure(self, starting_depth, ending_depth, rate):
         """
          Purpose: Compute the effective "crushing pressure" in each compartment as
          a result of descent segment(s).  The crushing pressure is the gradient
@@ -565,15 +564,15 @@ class DiveState(object):
         # (SI units).  The reason that the Gradient for Onset of Impermeability is
         # given in the program settings in units of atmospheres is because that is
         # how it was reported in the original research papers by Yount and
-        # colleauges.
+        # colleagues.
 
-        Gradient_Onset_of_Imperm = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.Units_Factor  # convert to diving units
-        Gradient_Onset_of_Imperm_Pa = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.ATM     # convert to Pascals
+        gradient_onset_of_imperm = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.Units_Factor  # convert to diving units
+        gradient_onset_of_imperm_pa = self.settings_values['Gradient_Onset_of_Imperm_Atm'] * self.ATM     # convert to Pascals
 
         # Assign values of starting and ending ambient pressures for descent segment
 
-        Starting_Ambient_Pressure = Starting_Depth + self.Barometric_Pressure
-        Ending_Ambient_Pressure = Ending_Depth + self.Barometric_Pressure
+        starting_ambient_pressure = starting_depth + self.Barometric_Pressure
+        ending_ambient_pressure = ending_depth + self.Barometric_Pressure
 
         # MAIN LOOP WITH NESTED DECISION TREE
         # For each compartment, the program computes the starting and ending
@@ -584,26 +583,26 @@ class DiveState(object):
         # the calculation of gas tensions and gradients.
 
         for i in range(16):
-            Starting_Gas_Tension = self.Initial_Helium_Pressure[i] + self.Initial_Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
+            starting_gas_tension = self.Initial_Helium_Pressure[i] + self.Initial_Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
 
-            Starting_Gradient = Starting_Ambient_Pressure - Starting_Gas_Tension
+            starting_gradient = starting_ambient_pressure - starting_gas_tension
 
-            Ending_Gas_Tension = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
+            ending_gas_tension = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
 
-            Ending_Gradient = Ending_Ambient_Pressure - Ending_Gas_Tension
+            ending_gradient = ending_ambient_pressure - ending_gas_tension
 
             # Compute radius at onset of impermeability for helium and nitrogen
             # critical radii
 
-            Radius_Onset_of_Imperm_He = 1.0 / (Gradient_Onset_of_Imperm_Pa / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_He[i])
+            radius_onset_of_imperm_he = 1.0 / (gradient_onset_of_imperm_pa / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_He[i])
 
-            Radius_Onset_of_Imperm_N2 = 1.0 / (Gradient_Onset_of_Imperm_Pa / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_N2[i])
+            radius_onset_of_imperm_n2 = 1.0 / (gradient_onset_of_imperm_pa / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_N2[i])
 
             # FIRST BRANCH OF DECISION TREE - PERMEABLE RANGE
             # Crushing pressures will be the same for helium and nitrogen
-            if Ending_Gradient <= Gradient_Onset_of_Imperm:
-                Crushing_Pressure_He = Ending_Ambient_Pressure - Ending_Gas_Tension
-                Crushing_Pressure_N2 = Ending_Ambient_Pressure - Ending_Gas_Tension
+            if ending_gradient <= gradient_onset_of_imperm:
+                crushing_pressure_he = ending_ambient_pressure - ending_gas_tension
+                crushing_pressure_n2 = ending_ambient_pressure - ending_gas_tension
 
             # SECOND BRANCH OF DECISION TREE - IMPERMEABLE RANGE
             # Both the ambient pressure and the gas tension at the onset of
@@ -612,16 +611,16 @@ class DiveState(object):
             # addresses the special case when the starting gradient just happens to be
             # equal to the gradient for onset of impermeability (not very likely!).
 
-            # if Ending_Gradient > Gradient_Onset_of_Imperm:
+            # if ending_gradient > gradient_onset_of_imperm:
             else:
 
-                if Starting_Gradient == Gradient_Onset_of_Imperm:
-                    self.Amb_Pressure_Onset_of_Imperm[i] = Starting_Ambient_Pressure
-                    self.Gas_Tension_Onset_of_Imperm[i] = Starting_Gas_Tension
+                if starting_gradient == gradient_onset_of_imperm:
+                    self.Amb_Pressure_Onset_of_Imperm[i] = starting_ambient_pressure
+                    self.Gas_Tension_Onset_of_Imperm[i] = starting_gas_tension
                 # In most cases, a subroutine will be called to find these values using a
                 # numerical method.
-                if Starting_Gradient < Gradient_Onset_of_Imperm:
-                    self.ONSET_OF_IMPERMEABILITY(Starting_Ambient_Pressure, Ending_Ambient_Pressure, Rate, i)
+                if starting_gradient < gradient_onset_of_imperm:
+                    self.onset_of_impermeability(starting_ambient_pressure, ending_ambient_pressure, rate, i)
 
                 # Next, using the values for ambient pressure and gas tension at the onset
                 # of impermeability, the equations are set up to process the calculations
@@ -636,21 +635,21 @@ class DiveState(object):
                 # "VPM: Solving for radius in the impermeable regime").  The subprogram
                 # will return the value of the ending radius and then the crushing
                 # pressures for helium and nitrogen can be calculated.
-                Ending_Ambient_Pressure_Pa = (Ending_Ambient_Pressure / self.Units_Factor) * self.ATM
+                ending_ambient_pressure_pa = (ending_ambient_pressure / self.Units_Factor) * self.ATM
 
-                Amb_Press_Onset_of_Imperm_Pa = (self.Amb_Pressure_Onset_of_Imperm[i] / self.Units_Factor) * self.ATM
+                amb_press_onset_of_imperm_pa = (self.Amb_Pressure_Onset_of_Imperm[i] / self.Units_Factor) * self.ATM
 
-                Gas_Tension_Onset_of_Imperm_Pa = (self.Gas_Tension_Onset_of_Imperm[i] / self.Units_Factor) * self.ATM
+                gas_tension_onset_of_imperm_pa = (self.Gas_Tension_Onset_of_Imperm[i] / self.Units_Factor) * self.ATM
 
-                Crushing_Pressure_He = self._crushing_pressure_helper(Radius_Onset_of_Imperm_He, Ending_Ambient_Pressure_Pa, Amb_Press_Onset_of_Imperm_Pa, Gas_Tension_Onset_of_Imperm_Pa, Gradient_Onset_of_Imperm_Pa)
+                crushing_pressure_he = self._crushing_pressure_helper(radius_onset_of_imperm_he, ending_ambient_pressure_pa, amb_press_onset_of_imperm_pa, gas_tension_onset_of_imperm_pa, gradient_onset_of_imperm_pa)
 
-                Crushing_Pressure_N2 = self._crushing_pressure_helper(Radius_Onset_of_Imperm_N2, Ending_Ambient_Pressure_Pa, Amb_Press_Onset_of_Imperm_Pa, Gas_Tension_Onset_of_Imperm_Pa, Gradient_Onset_of_Imperm_Pa)
+                crushing_pressure_n2 = self._crushing_pressure_helper(radius_onset_of_imperm_n2, ending_ambient_pressure_pa, amb_press_onset_of_imperm_pa, gas_tension_onset_of_imperm_pa, gradient_onset_of_imperm_pa)
 
             # UPDATE VALUES OF MAX CRUSHING PRESSURE IN Object ARRAYS
-            self.Max_Crushing_Pressure_He[i] = max(self.Max_Crushing_Pressure_He[i], Crushing_Pressure_He)
-            self.Max_Crushing_Pressure_N2[i] = max(self.Max_Crushing_Pressure_N2[i], Crushing_Pressure_N2)
+            self.Max_Crushing_Pressure_He[i] = max(self.Max_Crushing_Pressure_He[i], crushing_pressure_he)
+            self.Max_Crushing_Pressure_N2[i] = max(self.Max_Crushing_Pressure_N2[i], crushing_pressure_n2)
 
-    def ONSET_OF_IMPERMEABILITY(self, Starting_Ambient_Pressure, Ending_Ambient_Pressure, Rate, i):
+    def onset_of_impermeability(self, starting_ambient_pressure, ending_ambient_pressure, rate, i):
         """
         Purpose:  This subroutine uses the Bisection Method to find the ambient
         pressure and gas tension at the onset of impermeability for a given
@@ -670,12 +669,12 @@ class DiveState(object):
         # First convert the Gradient for Onset of Impermeability to the diving
         # pressure units that are being used
 
-        Gradient_Onset_of_Imperm = self.Gradient_Onset_of_Imperm_Atm * self.Units_Factor
+        gradient_onset_of_imperm = self.Gradient_Onset_of_Imperm_Atm * self.Units_Factor
 
         # ESTABLISH THE BOUNDS FOR THE ROOT SEARCH USING THE BISECTION METHOD
         # In this case, we are solving for time - the time when the ambient pressure
         # minus the gas tension will be equal to the Gradient for Onset of
-        # Impermeabliity.  The low bound for time is set at zero and the high
+        # Impermeability.  The low bound for time is set at zero and the high
         # bound is set at the elapsed time (segment time) it took to go from the
         # starting ambient pressure to the ending ambient pressure.  The desired
         # ambient pressure and gas tension at the onset of impermeability will
@@ -683,29 +682,29 @@ class DiveState(object):
         # make sure that the solution lies in between these bounds by first
         # computing the low bound and high bound function values.
 
-        Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        initial_inspired_he_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
 
-        Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        initial_inspired_n2_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        Helium_Rate = Rate * self.Fraction_Helium[self.Mix_Number - 1]
-        Nitrogen_Rate = Rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
-        Low_Bound = 0.0
+        helium_rate = rate * self.Fraction_Helium[self.Mix_Number - 1]
+        nitrogen_rate = rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        low_bound = 0.0
 
-        High_Bound = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Rate
+        high_bound = (ending_ambient_pressure - starting_ambient_pressure) / rate
 
-        Starting_Gas_Tension = self.Initial_Helium_Pressure[i] + self.Initial_Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
+        starting_gas_tension = self.Initial_Helium_Pressure[i] + self.Initial_Nitrogen_Pressure[i] + self.Constant_Pressure_Other_Gases
 
-        Function_at_Low_Bound = Starting_Ambient_Pressure - Starting_Gas_Tension - Gradient_Onset_of_Imperm
+        function_at_low_bound = starting_ambient_pressure - starting_gas_tension - gradient_onset_of_imperm
 
-        High_Bound_Helium_Pressure = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, High_Bound, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
+        high_bound_helium_pressure = schreiner_equation(initial_inspired_he_pressure, helium_rate, high_bound, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
 
-        High_Bound_Nitrogen_Pressure = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, High_Bound, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
+        high_bound_nitrogen_pressure = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, high_bound, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
 
-        Ending_Gas_Tension = High_Bound_Helium_Pressure + High_Bound_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases
+        ending_gas_tension = high_bound_helium_pressure + high_bound_nitrogen_pressure + self.Constant_Pressure_Other_Gases
 
-        Function_at_High_Bound = Ending_Ambient_Pressure - Ending_Gas_Tension - Gradient_Onset_of_Imperm
+        function_at_high_bound = ending_ambient_pressure - ending_gas_tension - gradient_onset_of_imperm
 
-        if(Function_at_High_Bound * Function_at_Low_Bound) >= 0.0:
+        if(function_at_high_bound * function_at_low_bound) >= 0.0:
             raise RootException("ERROR! ROOT IS NOT WITHIN BRACKETS")
 
         # APPLY THE BISECTION METHOD IN SEVERAL ITERATIONS UNTIL A SOLUTION WITH
@@ -714,39 +713,39 @@ class DiveState(object):
         # be made from the loop well before that number.  If, for some reason, the
         # program exceeds 100 iterations, there will be a pause to alert the user.
 
-        if Function_at_Low_Bound < 0.0:
-            Time = Low_Bound
-            Differential_Change = High_Bound - Low_Bound
+        if function_at_low_bound < 0.0:
+            time = low_bound
+            differential_change = high_bound - low_bound
         else:
-            Time = High_Bound
-            Differential_Change = Low_Bound - High_Bound
+            time = high_bound
+            differential_change = low_bound - high_bound
 
         for j in range(100):
-            Last_Diff_Change = Differential_Change
-            Differential_Change = Last_Diff_Change * 0.5
-            Mid_Range_Time = Time + Differential_Change
+            last_diff_change = differential_change
+            differential_change = last_diff_change * 0.5
+            mid_range_time = time + differential_change
 
-            Mid_Range_Ambient_Pressure = (Starting_Ambient_Pressure + Rate * Mid_Range_Time)
+            mid_range_ambient_pressure = (starting_ambient_pressure + rate * mid_range_time)
 
-            Mid_Range_Helium_Pressure = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, Mid_Range_Time, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
+            mid_range_helium_pressure = schreiner_equation(initial_inspired_he_pressure, helium_rate, mid_range_time, self.Helium_Time_Constant[i], self.Initial_Helium_Pressure[i])
 
-            Mid_Range_Nitrogen_Pressure = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, Mid_Range_Time, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
+            mid_range_nitrogen_pressure = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, mid_range_time, self.Nitrogen_Time_Constant[i], self.Initial_Nitrogen_Pressure[i])
 
-            Gas_Tension_at_Mid_Range = Mid_Range_Helium_Pressure + Mid_Range_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases
+            gas_tension_at_mid_range = mid_range_helium_pressure + mid_range_nitrogen_pressure + self.Constant_Pressure_Other_Gases
 
-            Function_at_Mid_Range = Mid_Range_Ambient_Pressure - Gas_Tension_at_Mid_Range - Gradient_Onset_of_Imperm
+            function_at_mid_range = mid_range_ambient_pressure - gas_tension_at_mid_range - gradient_onset_of_imperm
 
-            if Function_at_Mid_Range <= 0.0:
-                Time = Mid_Range_Time
+            if function_at_mid_range <= 0.0:
+                time = mid_range_time
 
             # When a solution with the desired accuracy is found, the program breaks
-            if (abs(Differential_Change) < 1.0E-3) or (Function_at_Mid_Range == 0.0):
+            if (abs(differential_change) < 1.0E-3) or (function_at_mid_range == 0.0):
                 break
 
-        self.Amb_Pressure_Onset_of_Imperm[i] = Mid_Range_Ambient_Pressure
-        self.Gas_Tension_Onset_of_Imperm[i] = Gas_Tension_at_Mid_Range
+        self.Amb_Pressure_Onset_of_Imperm[i] = mid_range_ambient_pressure
+        self.Gas_Tension_Onset_of_Imperm[i] = gas_tension_at_mid_range
 
-    def GAS_LOADINGS_CONSTANT_DEPTH(self, Depth, Run_Time_End_of_Segment):
+    def gas_loadings_constant_depth(self, depth, run_time_end_of_segment):
         """
         Purpose: This subprogram applies the Haldane equation to update the
         gas loadings (partial pressures of helium and nitrogen) in the half-time
@@ -763,29 +762,29 @@ class DiveState(object):
         Returns: None
         """
 
-        self.Segment_Time = Run_Time_End_of_Segment - self.Run_Time
-        self.Run_Time = Run_Time_End_of_Segment
+        self.Segment_Time = run_time_end_of_segment - self.Run_Time
+        self.Run_Time = run_time_end_of_segment
         self.Segment_Number = self.Segment_Number + 1
-        Ambient_Pressure = Depth + self.Barometric_Pressure
+        ambient_pressure = depth + self.Barometric_Pressure
 
-        Inspired_Helium_Pressure = (Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        inspired_helium_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
 
-        Inspired_Nitrogen_Pressure = (Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        inspired_nitrogen_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        self.Ending_Ambient_Pressure = Ambient_Pressure
+        self.Ending_Ambient_Pressure = ambient_pressure
 
-        Temp_Helium_Pressure = 0.0
-        Temp_Nitrogen_Pressure = 0.0
+        temp_helium_pressure = 0.0
+        temp_nitrogen_pressure = 0.0
 
         for i in range(16):
-            Temp_Helium_Pressure = self.Helium_Pressure[i]
-            Temp_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
+            temp_helium_pressure = self.Helium_Pressure[i]
+            temp_nitrogen_pressure = self.Nitrogen_Pressure[i]
 
-            self.Helium_Pressure[i] = HALDANE_EQUATION(Temp_Helium_Pressure, Inspired_Helium_Pressure, self.Helium_Time_Constant[i], self.Segment_Time)
+            self.Helium_Pressure[i] = haldane_equation(temp_helium_pressure, inspired_helium_pressure, self.Helium_Time_Constant[i], self.Segment_Time)
 
-            self.Nitrogen_Pressure[i] = HALDANE_EQUATION(Temp_Nitrogen_Pressure, Inspired_Nitrogen_Pressure, self.Nitrogen_Time_Constant[i], self.Segment_Time)
+            self.Nitrogen_Pressure[i] = haldane_equation(temp_nitrogen_pressure, inspired_nitrogen_pressure, self.Nitrogen_Time_Constant[i], self.Segment_Time)
 
-    def NUCLEAR_REGENERATION(self, Dive_Time):
+    def nuclear_regeneration(self, dive_time):
         """
         Purpose: This subprogram calculates the regeneration of VPM critical
         radii that takes place over the dive time.  The regeneration time constant
@@ -805,22 +804,22 @@ class DiveState(object):
         # to Pascals.  Next, compute the ending radius for helium and nitrogen
         # critical nuclei in each compartment.
         for i in range(16):
-            Crushing_Pressure_Pascals_He = (self.Max_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
+            crushing_pressure_pascals_he = (self.Max_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
 
-            Crushing_Pressure_Pascals_N2 = (self.Max_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
+            crushing_pressure_pascals_n2 = (self.Max_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
 
-            Ending_Radius_He = 1.0 / (Crushing_Pressure_Pascals_He / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_He[i])
+            ending_radius_he = 1.0 / (crushing_pressure_pascals_he / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_He[i])
 
-            Ending_Radius_N2 = 1.0 / (Crushing_Pressure_Pascals_N2 / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_N2[i])
+            ending_radius_n2 = 1.0 / (crushing_pressure_pascals_n2 / (2.0 * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) + 1.0 / self.Adjusted_Critical_Radius_N2[i])
             # A "regenerated" radius for each nucleus is now calculated based on the
             # regeneration time constant.  This means that after application of
             # crushing pressure and reduction in radius, a nucleus will slowly grow
             # back to its original initial radius over a period of time.  This
             # phenomenon is probabilistic in nature and depends on absolute temperature.
             # It is independent of crushing pressure.
-            self.Regenerated_Radius_He[i] = self.Adjusted_Critical_Radius_He[i] + (Ending_Radius_He - self.Adjusted_Critical_Radius_He[i]) * exp(-Dive_Time / self.settings_values['Regeneration_Time_Constant'])
+            self.Regenerated_Radius_He[i] = self.Adjusted_Critical_Radius_He[i] + (ending_radius_he - self.Adjusted_Critical_Radius_He[i]) * exp(-dive_time / self.settings_values['Regeneration_Time_Constant'])
 
-            self.Regenerated_Radius_N2[i] = self.Adjusted_Critical_Radius_N2[i] + (Ending_Radius_N2 - self.Adjusted_Critical_Radius_N2[i]) * exp(-Dive_Time / self.settings_values['Regeneration_Time_Constant'])
+            self.Regenerated_Radius_N2[i] = self.Adjusted_Critical_Radius_N2[i] + (ending_radius_n2 - self.Adjusted_Critical_Radius_N2[i]) * exp(-dive_time / self.settings_values['Regeneration_Time_Constant'])
 
             # In order to preserve reference back to the initial critical radii after
             # regeneration, an "adjusted crushing pressure" for the nuclei in each
@@ -832,27 +831,27 @@ class DiveState(object):
             # of the original crushing pressure, is then applied in the VPM Critical
             # Volume Algorithm and the VPM Repetitive Algorithm.
 
-            Crush_Pressure_Adjust_Ratio_He = (Ending_Radius_He * (self.Adjusted_Critical_Radius_He[i] - self.Regenerated_Radius_He[i])) / (self.Regenerated_Radius_He[i] * (self.Adjusted_Critical_Radius_He[i] - Ending_Radius_He))
+            crush_pressure_adjust_ratio_he = (ending_radius_he * (self.Adjusted_Critical_Radius_He[i] - self.Regenerated_Radius_He[i])) / (self.Regenerated_Radius_He[i] * (self.Adjusted_Critical_Radius_He[i] - ending_radius_he))
 
-            Crush_Pressure_Adjust_Ratio_N2 = (Ending_Radius_N2 * (self.Adjusted_Critical_Radius_N2[i] - self.Regenerated_Radius_N2[i])) / (self.Regenerated_Radius_N2[i] * (self.Adjusted_Critical_Radius_N2[i] - Ending_Radius_N2))
+            crush_pressure_adjust_ratio_n2 = (ending_radius_n2 * (self.Adjusted_Critical_Radius_N2[i] - self.Regenerated_Radius_N2[i])) / (self.Regenerated_Radius_N2[i] * (self.Adjusted_Critical_Radius_N2[i] - ending_radius_n2))
 
-            Adj_Crush_Pressure_He_Pascals = Crushing_Pressure_Pascals_He * Crush_Pressure_Adjust_Ratio_He
-            Adj_Crush_Pressure_N2_Pascals = Crushing_Pressure_Pascals_N2 * Crush_Pressure_Adjust_Ratio_N2
+            adj_crush_pressure_he_pascals = crushing_pressure_pascals_he * crush_pressure_adjust_ratio_he
+            adj_crush_pressure_n2_pascals = crushing_pressure_pascals_n2 * crush_pressure_adjust_ratio_n2
 
-            self.Adjusted_Crushing_Pressure_He[i] = (Adj_Crush_Pressure_He_Pascals / self.ATM) * self.Units_Factor
-            self.Adjusted_Crushing_Pressure_N2[i] = (Adj_Crush_Pressure_N2_Pascals / self.ATM) * self.Units_Factor
+            self.Adjusted_Crushing_Pressure_He[i] = (adj_crush_pressure_he_pascals / self.ATM) * self.Units_Factor
+            self.Adjusted_Crushing_Pressure_N2[i] = (adj_crush_pressure_n2_pascals / self.ATM) * self.Units_Factor
 
-    def CALC_INITIAL_ALLOWABLE_GRADIENT(self):
+    def calc_initial_allowable_gradient(self):
         """
         Purpose: This subprogram calculates the initial allowable gradients for
-        helium and nitrogren in each compartment.  These are the gradients that
+        helium and nitrogen in each compartment.  These are the gradients that
         will be used to set the deco ceiling on the first pass through the deco
         loop.  If the Critical Volume Algorithm is set to "off", then these
         gradients will determine the final deco schedule.  Otherwise, if the
         Critical Volume Algorithm is set to "on", these gradients will be further
         "relaxed" by the Critical Volume Algorithm subroutine.  The initial
         allowable gradients are referred to as "PssMin" in the papers by Yount
-        and colleauges, i.e., the minimum supersaturation pressure gradients
+        and colleagues, i.e., the minimum supersaturation pressure gradients
         that will probe bubble formation in the VPM nuclei that started with the
         designated minimum initial radius (critical radius).
 
@@ -879,17 +878,17 @@ class DiveState(object):
         # Volume subroutine and the VPM Repetitive Algorithm subroutine.
 
         for i in range(16):
-            Initial_Allowable_Grad_N2_Pa = ((2.0 * self.settings_values['Surface_Tension_Gamma'] * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) / (self.Regenerated_Radius_N2[i] * self.settings_values['Skin_Compression_GammaC']))
+            initial_allowable_grad_n2_pa = ((2.0 * self.settings_values['Surface_Tension_Gamma'] * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) / (self.Regenerated_Radius_N2[i] * self.settings_values['Skin_Compression_GammaC']))
 
-            Initial_Allowable_Grad_He_Pa = ((2.0 * self.settings_values['Surface_Tension_Gamma'] * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) / (self.Regenerated_Radius_He[i] * self.settings_values['Skin_Compression_GammaC']))
+            initial_allowable_grad_he_pa = ((2.0 * self.settings_values['Surface_Tension_Gamma'] * (self.settings_values['Skin_Compression_GammaC'] - self.settings_values['Surface_Tension_Gamma'])) / (self.Regenerated_Radius_He[i] * self.settings_values['Skin_Compression_GammaC']))
 
-            self.Initial_Allowable_Gradient_N2[i] = (Initial_Allowable_Grad_N2_Pa / self.ATM) * self.Units_Factor
-            self.Initial_Allowable_Gradient_He[i] = (Initial_Allowable_Grad_He_Pa / self.ATM) * self.Units_Factor
+            self.Initial_Allowable_Gradient_N2[i] = (initial_allowable_grad_n2_pa / self.ATM) * self.Units_Factor
+            self.Initial_Allowable_Gradient_He[i] = (initial_allowable_grad_he_pa / self.ATM) * self.Units_Factor
 
             self.Allowable_Gradient_He[i] = self.Initial_Allowable_Gradient_He[i]
             self.Allowable_Gradient_N2[i] = self.Initial_Allowable_Gradient_N2[i]
 
-    def CALC_START_OF_DECO_ZONE(self, Starting_Depth, Rate):
+    def calc_start_of_deco_zone(self, starting_depth, rate):
         """
         Purpose: This subroutine uses the Bisection Method to find the depth at
         which the leading compartment just enters the decompression zone.
@@ -908,14 +907,14 @@ class DiveState(object):
 
         # First initialize some variables
         self.Depth_Start_of_Deco_Zone = 0.0
-        Starting_Ambient_Pressure = Starting_Depth + self.Barometric_Pressure
+        starting_ambient_pressure = starting_depth + self.Barometric_Pressure
 
-        Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        initial_inspired_he_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
 
-        Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        initial_inspired_n2_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        Helium_Rate = Rate * self.Fraction_Helium[self.Mix_Number - 1]
-        Nitrogen_Rate = Rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        helium_rate = rate * self.Fraction_Helium[self.Mix_Number - 1]
+        nitrogen_rate = rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
         # ESTABLISH THE BOUNDS FOR THE ROOT SEARCH USING THE BISECTION METHOD
         # AND CHECK TO MAKE SURE THAT THE ROOT WILL BE WITHIN BOUNDS.  PROCESS
@@ -931,22 +930,22 @@ class DiveState(object):
         # the solution lies in between these bounds by first computing the low bound
         # and high bound function values.
 
-        Low_Bound = 0.0
-        High_Bound = -1.0 * (Starting_Ambient_Pressure / Rate)
+        low_bound = 0.0
+        high_bound = -1.0 * (starting_ambient_pressure / rate)
 
         for i in range(16):
-            Initial_Helium_Pressure = self.Helium_Pressure[i]
-            Initial_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
+            initial_helium_pressure = self.Helium_Pressure[i]
+            initial_nitrogen_pressure = self.Nitrogen_Pressure[i]
 
-            Function_at_Low_Bound = Initial_Helium_Pressure + Initial_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases - Starting_Ambient_Pressure
+            function_at_low_bound = initial_helium_pressure + initial_nitrogen_pressure + self.Constant_Pressure_Other_Gases - starting_ambient_pressure
 
-            High_Bound_Helium_Pressure = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, High_Bound, self.Helium_Time_Constant[i], Initial_Helium_Pressure)
+            high_bound_helium_pressure = schreiner_equation(initial_inspired_he_pressure, helium_rate, high_bound, self.Helium_Time_Constant[i], initial_helium_pressure)
 
-            High_Bound_Nitrogen_Pressure = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, High_Bound, self.Nitrogen_Time_Constant[i], Initial_Nitrogen_Pressure)
+            high_bound_nitrogen_pressure = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, high_bound, self.Nitrogen_Time_Constant[i], initial_nitrogen_pressure)
 
-            Function_at_High_Bound = High_Bound_Helium_Pressure + High_Bound_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases
+            function_at_high_bound = high_bound_helium_pressure + high_bound_nitrogen_pressure + self.Constant_Pressure_Other_Gases
 
-            if (Function_at_High_Bound * Function_at_Low_Bound) >= 0.0:
+            if (function_at_high_bound * function_at_low_bound) >= 0.0:
                 raise RootException("ERROR! ROOT IS NOT WITHIN BRACKETS")
 
             # APPLY THE BISECTION METHOD IN SEVERAL ITERATIONS UNTIL A SOLUTION WITH
@@ -955,29 +954,29 @@ class DiveState(object):
             # be made from the loop well before that number.  If, for some reason, the
             # program exceeds 100 iterations, there will be a pause to alert the user.
 
-            if Function_at_Low_Bound < 0.0:
-                Time_to_Start_of_Deco_Zone = Low_Bound
-                Differential_Change = High_Bound - Low_Bound
+            if function_at_low_bound < 0.0:
+                time_to_start_of_deco_zone = low_bound
+                differential_change = high_bound - low_bound
             else:
-                Time_to_Start_of_Deco_Zone = High_Bound
-                Differential_Change = Low_Bound - High_Bound
+                time_to_start_of_deco_zone = high_bound
+                differential_change = low_bound - high_bound
 
             for j in range(100):
-                Last_Diff_Change = Differential_Change
-                Differential_Change = Last_Diff_Change * 0.5
+                last_diff_change = differential_change
+                differential_change = last_diff_change * 0.5
 
-                Mid_Range_Time = Time_to_Start_of_Deco_Zone + Differential_Change
+                mid_range_time = time_to_start_of_deco_zone + differential_change
 
-                Mid_Range_Helium_Pressure = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, Mid_Range_Time, self.Helium_Time_Constant[i], Initial_Helium_Pressure)
+                mid_range_helium_pressure = schreiner_equation(initial_inspired_he_pressure, helium_rate, mid_range_time, self.Helium_Time_Constant[i], initial_helium_pressure)
 
-                Mid_Range_Nitrogen_Pressure = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, Mid_Range_Time, self.Nitrogen_Time_Constant[i], Initial_Nitrogen_Pressure)
+                mid_range_nitrogen_pressure = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, mid_range_time, self.Nitrogen_Time_Constant[i], initial_nitrogen_pressure)
 
-                Function_at_Mid_Range = Mid_Range_Helium_Pressure + Mid_Range_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases - (Starting_Ambient_Pressure + Rate * Mid_Range_Time)
+                function_at_mid_range = mid_range_helium_pressure + mid_range_nitrogen_pressure + self.Constant_Pressure_Other_Gases - (starting_ambient_pressure + rate * mid_range_time)
 
-                if Function_at_Mid_Range <= 0.0:
-                    Time_to_Start_of_Deco_Zone = Mid_Range_Time
+                if function_at_mid_range <= 0.0:
+                    time_to_start_of_deco_zone = mid_range_time
 
-                if (abs(Differential_Change) < 1.0E-3) or (Function_at_Mid_Range == 0.0):
+                if (abs(differential_change) < 1.0E-3) or (function_at_mid_range == 0.0):
                     break
 
                 if j == 100:
@@ -987,13 +986,13 @@ class DiveState(object):
             # of the loop to Line 170 and assigns the solution value for the individual
             # compartment.
 
-            Cpt_Depth_Start_of_Deco_Zone = (Starting_Ambient_Pressure + Rate * Time_to_Start_of_Deco_Zone) - self.Barometric_Pressure
+            cpt_depth_start_of_deco_zone = (starting_ambient_pressure + rate * time_to_start_of_deco_zone) - self.Barometric_Pressure
             # The overall solution will be the compartment with the maximum depth where
             # gas tension equals ambient pressure (leading compartment).
 
-            self.Depth_Start_of_Deco_Zone = max(self.Depth_Start_of_Deco_Zone, Cpt_Depth_Start_of_Deco_Zone)
+            self.Depth_Start_of_Deco_Zone = max(self.Depth_Start_of_Deco_Zone, cpt_depth_start_of_deco_zone)
 
-    def CALC_ASCENT_CEILING(self):
+    def calc_ascent_ceiling(self):
         """
         Purpose: This subprogram calculates the ascent ceiling (the safe ascent
         depth) in each compartment, based on the allowable gradients, and then
@@ -1005,10 +1004,10 @@ class DiveState(object):
         Returns: None
         """
 
-        Gas_Loading = 0.0
-        Weighted_Allowable_Gradient = 0.0
-        Tolerated_Ambient_Pressure = 0.0
-        Compartment_Ascent_Ceiling = [0.0 for i in range(16)]
+        gas_loading = 0.0
+        weighted_allowable_gradient = 0.0
+        tolerated_ambient_pressure = 0.0
+        compartment_ascent_ceiling = [0.0 for i in range(16)]
 
         # Since there are two sets of allowable gradients being tracked, one for
         # helium and one for nitrogen, a "weighted allowable gradient" must be
@@ -1021,23 +1020,20 @@ class DiveState(object):
         # gradient formula cannot be used since it will result in division by zero.
 
         for i in range(16):
-            Gas_Loading = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i]
+            gas_loading = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i]
 
-            Weighted_Allowable_Gradient = None
-            Tolerated_Ambient_Pressure = None
-
-            if Gas_Loading > 0.0:
-                Weighted_Allowable_Gradient = (self.Allowable_Gradient_He[i] * self.Helium_Pressure[i] + self.Allowable_Gradient_N2[i] * self.Nitrogen_Pressure[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i])
-                Tolerated_Ambient_Pressure = (Gas_Loading + self.Constant_Pressure_Other_Gases) - Weighted_Allowable_Gradient
+            if gas_loading > 0.0:
+                weighted_allowable_gradient = (self.Allowable_Gradient_He[i] * self.Helium_Pressure[i] + self.Allowable_Gradient_N2[i] * self.Nitrogen_Pressure[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i])
+                tolerated_ambient_pressure = (gas_loading + self.Constant_Pressure_Other_Gases) - weighted_allowable_gradient
 
             else:
-                Weighted_Allowable_Gradient = min(self.Allowable_Gradient_He[i], self.Allowable_Gradient_N2[i])
-                Tolerated_Ambient_Pressure = self.Constant_Pressure_Other_Gases - Weighted_Allowable_Gradient
+                weighted_allowable_gradient = min(self.Allowable_Gradient_He[i], self.Allowable_Gradient_N2[i])
+                tolerated_ambient_pressure = self.Constant_Pressure_Other_Gases - weighted_allowable_gradient
 
             #     The tolerated ambient pressure cannot be less than zero absolute, i.e.,
             #     the vacuum of outer space!
-            if Tolerated_Ambient_Pressure < 0.0:
-                Tolerated_Ambient_Pressure = 0.0
+            if tolerated_ambient_pressure < 0.0:
+                tolerated_ambient_pressure = 0.0
 
             #     The Ascent Ceiling Depth is computed in a loop after all of the individual
             #     compartment ascent ceilings have been calculated.  It is important that
@@ -1049,14 +1045,14 @@ class DiveState(object):
             #     absolute ambient pressure) in order to decompress to the last stop at zero
             #     depth.
 
-            Compartment_Ascent_Ceiling[i] = Tolerated_Ambient_Pressure - self.Barometric_Pressure
+            compartment_ascent_ceiling[i] = tolerated_ambient_pressure - self.Barometric_Pressure
 
-        self.Ascent_Ceiling_Depth = Compartment_Ascent_Ceiling[0]
+        self.Ascent_Ceiling_Depth = compartment_ascent_ceiling[0]
 
         for i in range(1, 16):
-            self.Ascent_Ceiling_Depth = max(self.Ascent_Ceiling_Depth, Compartment_Ascent_Ceiling[i])
+            self.Ascent_Ceiling_Depth = max(self.Ascent_Ceiling_Depth, compartment_ascent_ceiling[i])
 
-    def PROJECTED_ASCENT(self, Starting_Depth, Rate, Step_Size):
+    def projected_ascent(self, starting_depth, rate, step_size):
         """
         Purpose: This subprogram performs a simulated ascent outside of the main
         program to ensure that a deco ceiling will not be violated due to unusual
@@ -1070,49 +1066,49 @@ class DiveState(object):
         Returns: None
         """
 
-        New_Ambient_Pressure = self.Deco_Stop_Depth + self.Barometric_Pressure
-        Starting_Ambient_Pressure = Starting_Depth + self.Barometric_Pressure
+        new_ambient_pressure = self.Deco_Stop_Depth + self.Barometric_Pressure
+        starting_ambient_pressure = starting_depth + self.Barometric_Pressure
 
-        Initial_Inspired_He_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        initial_inspired_he_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
 
-        Initial_Inspired_N2_Pressure = (Starting_Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        initial_inspired_n2_pressure = (starting_ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        Helium_Rate = Rate * self.Fraction_Helium[self.Mix_Number - 1]
-        Nitrogen_Rate = Rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        helium_rate = rate * self.Fraction_Helium[self.Mix_Number - 1]
+        nitrogen_rate = rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        Temp_Gas_Loading = [0.0 for i in range(16)]
-        Allowable_Gas_Loading = [0.0 for i in range(16)]
-        Initial_Helium_Pressure = [0.0 for i in range(16)]
-        Initial_Nitrogen_Pressure = [0.0 for i in range(16)]
+        temp_gas_loading = [0.0 for i in range(16)]
+        allowable_gas_loading = [0.0 for i in range(16)]
+        initial_helium_pressure = [0.0 for i in range(16)]
+        initial_nitrogen_pressure = [0.0 for i in range(16)]
 
         for i in range(16):
-            Initial_Helium_Pressure[i] = self.Helium_Pressure[i]
-            Initial_Nitrogen_Pressure[i] = self.Nitrogen_Pressure[i]
+            initial_helium_pressure[i] = self.Helium_Pressure[i]
+            initial_nitrogen_pressure[i] = self.Nitrogen_Pressure[i]
 
         while True:
-            Ending_Ambient_Pressure = New_Ambient_Pressure
+            ending_ambient_pressure = new_ambient_pressure
 
-            Segment_Time = (Ending_Ambient_Pressure - Starting_Ambient_Pressure) / Rate
+            segment_time = (ending_ambient_pressure - starting_ambient_pressure) / rate
 
             for i in range(16):
-                Temp_Helium_Pressure = SCHREINER_EQUATION(Initial_Inspired_He_Pressure, Helium_Rate, Segment_Time, self.Helium_Time_Constant[i], Initial_Helium_Pressure[i])
+                temp_helium_pressure = schreiner_equation(initial_inspired_he_pressure, helium_rate, segment_time, self.Helium_Time_Constant[i], initial_helium_pressure[i])
 
-                Temp_Nitrogen_Pressure = SCHREINER_EQUATION(Initial_Inspired_N2_Pressure, Nitrogen_Rate, Segment_Time, self.Nitrogen_Time_Constant[i], Initial_Nitrogen_Pressure[i])
+                temp_nitrogen_pressure = schreiner_equation(initial_inspired_n2_pressure, nitrogen_rate, segment_time, self.Nitrogen_Time_Constant[i], initial_nitrogen_pressure[i])
 
-                Temp_Gas_Loading[i] = Temp_Helium_Pressure + Temp_Nitrogen_Pressure
+                temp_gas_loading[i] = temp_helium_pressure + temp_nitrogen_pressure
 
-                if Temp_Gas_Loading[i] > 0.0:
-                    Weighted_Allowable_Gradient = (self.Allowable_Gradient_He[i] * Temp_Helium_Pressure + self.Allowable_Gradient_N2[i] * Temp_Nitrogen_Pressure) / Temp_Gas_Loading[i]
+                if temp_gas_loading[i] > 0.0:
+                    weighted_allowable_gradient = (self.Allowable_Gradient_He[i] * temp_helium_pressure + self.Allowable_Gradient_N2[i] * temp_nitrogen_pressure) / temp_gas_loading[i]
                 else:
-                    Weighted_Allowable_Gradient = min(self.Allowable_Gradient_He[i], self.Allowable_Gradient_N2[i])
+                    weighted_allowable_gradient = min(self.Allowable_Gradient_He[i], self.Allowable_Gradient_N2[i])
 
-                Allowable_Gas_Loading[i] = Ending_Ambient_Pressure + Weighted_Allowable_Gradient - self.Constant_Pressure_Other_Gases
+                allowable_gas_loading[i] = ending_ambient_pressure + weighted_allowable_gradient - self.Constant_Pressure_Other_Gases
 
             end_sub = True
             for j in range(16):
-                if Temp_Gas_Loading[j] > Allowable_Gas_Loading[j]:
-                    New_Ambient_Pressure = Ending_Ambient_Pressure + Step_Size
-                    self.Deco_Stop_Depth = self.Deco_Stop_Depth + Step_Size
+                if temp_gas_loading[j] > allowable_gas_loading[j]:
+                    new_ambient_pressure = ending_ambient_pressure + step_size
+                    self.Deco_Stop_Depth = self.Deco_Stop_Depth + step_size
                     end_sub = False
 
                     break
@@ -1122,7 +1118,7 @@ class DiveState(object):
             else:
                 break
 
-    def _calculate_deco_gradient(self, Allowable_Gradient_Molecule, Amb_Press_First_Stop_Pascals, Amb_Press_Next_Stop_Pascals):
+    def _calculate_deco_gradient(self, allowable_gradient_molecule, amb_press_first_stop_pascals, amb_press_next_stop_pascals):
         """Calculates the decompression gradient for Boyles_Law_Compensation.
 
         Side Effects: None
@@ -1130,22 +1126,22 @@ class DiveState(object):
         Returns: A floating point value
         """
 
-        Allow_Grad_First_Stop_Pa = (Allowable_Gradient_Molecule / self.Units_Factor) * self.ATM
-        Radius_First_Stop = (2.0 * self.Surface_Tension_Gamma) / Allow_Grad_First_Stop_Pa
+        allow_grad_first_stop_pa = (allowable_gradient_molecule / self.Units_Factor) * self.ATM
+        radius_first_stop = (2.0 * self.Surface_Tension_Gamma) / allow_grad_first_stop_pa
 
-        A = Amb_Press_Next_Stop_Pascals
+        A = amb_press_next_stop_pascals
         B = -2.0 * self.Surface_Tension_Gamma
-        C = (Amb_Press_First_Stop_Pascals + (2.0 * self.Surface_Tension_Gamma) / Radius_First_Stop) * Radius_First_Stop * (Radius_First_Stop * (Radius_First_Stop))
+        C = (amb_press_first_stop_pascals + (2.0 * self.Surface_Tension_Gamma) / radius_first_stop) * radius_first_stop * (radius_first_stop * radius_first_stop)
 
-        Low_Bound = Radius_First_Stop
-        High_Bound = Radius_First_Stop * (Amb_Press_First_Stop_Pascals / Amb_Press_Next_Stop_Pascals) ** (1.0 / 3.0)
+        low_bound = radius_first_stop
+        high_bound = radius_first_stop * (amb_press_first_stop_pascals / amb_press_next_stop_pascals) ** (1.0 / 3.0)
 
-        Ending_Radius = RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound)
+        ending_radius = radius_root_finder(A, B, C, low_bound, high_bound)
 
-        Deco_Gradient_Pascals = (2.0 * self.Surface_Tension_Gamma) / Ending_Radius
-        return (Deco_Gradient_Pascals / self.ATM) * self.Units_Factor
+        deco_gradient_pascals = (2.0 * self.Surface_Tension_Gamma) / ending_radius
+        return (deco_gradient_pascals / self.ATM) * self.Units_Factor
 
-    def BOYLES_LAW_COMPENSATION(self, First_Stop_Depth, Deco_Stop_Depth, Step_Size):
+    def boyles_law_compensation(self, first_stop_depth, deco_stop_depth, step_size):
         """
         Purpose: This subprogram calculates the reduction in allowable gradients
         with decreasing ambient pressure during the decompression profile based
@@ -1158,21 +1154,21 @@ class DiveState(object):
         Returns: None
         """
 
-        Next_Stop = Deco_Stop_Depth - Step_Size
-        Ambient_Pressure_First_Stop = First_Stop_Depth + self.Barometric_Pressure
-        Ambient_Pressure_Next_Stop = Next_Stop + self.Barometric_Pressure
+        next_stop = deco_stop_depth - step_size
+        ambient_pressure_first_stop = first_stop_depth + self.Barometric_Pressure
+        ambient_pressure_next_stop = next_stop + self.Barometric_Pressure
 
-        Amb_Press_First_Stop_Pascals = (Ambient_Pressure_First_Stop / self.Units_Factor) * self.ATM
-        Amb_Press_Next_Stop_Pascals = (Ambient_Pressure_Next_Stop / self.Units_Factor) * self.ATM
+        amb_press_first_stop_pascals = (ambient_pressure_first_stop / self.Units_Factor) * self.ATM
+        amb_press_next_stop_pascals = (ambient_pressure_next_stop / self.Units_Factor) * self.ATM
 
         for i in range(16):
             # Helium Calculation
-            self.Deco_Gradient_He[i] = self._calculate_deco_gradient(self.Allowable_Gradient_He[i], Amb_Press_First_Stop_Pascals, Amb_Press_Next_Stop_Pascals)
+            self.Deco_Gradient_He[i] = self._calculate_deco_gradient(self.Allowable_Gradient_He[i], amb_press_first_stop_pascals, amb_press_next_stop_pascals)
 
             # Nitrogen Calculation
-            self.Deco_Gradient_N2[i] = self._calculate_deco_gradient(self.Allowable_Gradient_N2[i], Amb_Press_First_Stop_Pascals, Amb_Press_Next_Stop_Pascals)
+            self.Deco_Gradient_N2[i] = self._calculate_deco_gradient(self.Allowable_Gradient_N2[i], amb_press_first_stop_pascals, amb_press_next_stop_pascals)
 
-    def DECOMPRESSION_STOP(self, Deco_Stop_Depth, Step_Size):
+    def decompression_stop(self, deco_stop_depth, step_size):
         """
         Purpose: This subprogram calculates the required time at each
         decompression stop.
@@ -1192,54 +1188,53 @@ class DiveState(object):
         Returns: None
         """
 
-        Deco_Ceiling_Depth = 0.0
-        Last_Run_Time = self.Run_Time
-        Round_Up_Operation = round((Last_Run_Time / self.Minimum_Deco_Stop_Time) + 0.5) * self.Minimum_Deco_Stop_Time
-        self.Segment_Time = Round_Up_Operation - self.Run_Time
-        self.Run_Time = Round_Up_Operation
-        Temp_Segment_Time = self.Segment_Time
+        last_run_time = self.Run_Time
+        round_up_operation = round((last_run_time / self.Minimum_Deco_Stop_Time) + 0.5) * self.Minimum_Deco_Stop_Time
+        self.Segment_Time = round_up_operation - self.Run_Time
+        self.Run_Time = round_up_operation
+        temp_segment_time = self.Segment_Time
         self.Segment_Number = self.Segment_Number + 1
-        Ambient_Pressure = Deco_Stop_Depth + self.Barometric_Pressure
-        self.Ending_Ambient_Pressure = Ambient_Pressure
-        Next_Stop = Deco_Stop_Depth - Step_Size
+        ambient_pressure = deco_stop_depth + self.Barometric_Pressure
+        self.Ending_Ambient_Pressure = ambient_pressure
+        next_stop = deco_stop_depth - step_size
 
-        Inspired_Helium_Pressure = (Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
+        inspired_helium_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
 
-        Inspired_Nitrogen_Pressure = (Ambient_Pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
+        inspired_nitrogen_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
         # Check to make sure that program won't lock up if unable to decompress
         # to the next stop.  If so, write error message and terminate program.
 
         for i in range(16):
-            if(Inspired_Helium_Pressure + Inspired_Nitrogen_Pressure) > 0.0:
-                Weighted_Allowable_Gradient = (self.Deco_Gradient_He[i] * Inspired_Helium_Pressure + self.Deco_Gradient_N2[i] * Inspired_Nitrogen_Pressure) / (Inspired_Helium_Pressure + Inspired_Nitrogen_Pressure)
+            if(inspired_helium_pressure + inspired_nitrogen_pressure) > 0.0:
+                weighted_allowable_gradient = (self.Deco_Gradient_He[i] * inspired_helium_pressure + self.Deco_Gradient_N2[i] * inspired_nitrogen_pressure) / (inspired_helium_pressure + inspired_nitrogen_pressure)
 
-                if (Inspired_Helium_Pressure + Inspired_Nitrogen_Pressure + self.Constant_Pressure_Other_Gases - Weighted_Allowable_Gradient) > (Next_Stop + self.Barometric_Pressure):
-                    raise OffGassingException("ERROR! OFF-GASSING GRADIENT IS TOO SMALL TO DECOMPRESS AT THE %f STOP. Next stop: %f" % (Deco_Stop_Depth, Next_Stop))
+                if (inspired_helium_pressure + inspired_nitrogen_pressure + self.Constant_Pressure_Other_Gases - weighted_allowable_gradient) > (next_stop + self.Barometric_Pressure):
+                    raise OffGassingException("ERROR! OFF-GASSING GRADIENT IS TOO SMALL TO DECOMPRESS AT THE %f STOP. Next stop: %f" % (deco_stop_depth, next_stop))
 
         while True:
             for i in range(16):
 
-                Initial_Helium_Pressure = self.Helium_Pressure[i]
-                Initial_Nitrogen_Pressure = self.Nitrogen_Pressure[i]
+                initial_helium_pressure = self.Helium_Pressure[i]
+                initial_nitrogen_pressure = self.Nitrogen_Pressure[i]
 
-                self.Helium_Pressure[i] = HALDANE_EQUATION(Initial_Helium_Pressure, Inspired_Helium_Pressure, self.Helium_Time_Constant[i], self.Segment_Time)
+                self.Helium_Pressure[i] = haldane_equation(initial_helium_pressure, inspired_helium_pressure, self.Helium_Time_Constant[i], self.Segment_Time)
 
-                self.Nitrogen_Pressure[i] = HALDANE_EQUATION(Initial_Nitrogen_Pressure, Inspired_Nitrogen_Pressure, self.Nitrogen_Time_Constant[i], self.Segment_Time)
+                self.Nitrogen_Pressure[i] = haldane_equation(initial_nitrogen_pressure, inspired_nitrogen_pressure, self.Nitrogen_Time_Constant[i], self.Segment_Time)
 
-            Deco_Ceiling_Depth = self.CALC_DECO_CEILING()
-            if Deco_Ceiling_Depth > Next_Stop:
+            deco_ceiling_depth = self.calc_deco_ceiling()
+            if deco_ceiling_depth > next_stop:
                 self.Segment_Time = self.Minimum_Deco_Stop_Time
-                Time_Counter = Temp_Segment_Time
-                Temp_Segment_Time = Time_Counter + self.Minimum_Deco_Stop_Time
-                Last_Run_Time = self.Run_Time
-                self.Run_Time = Last_Run_Time + self.Minimum_Deco_Stop_Time
+                time_counter = temp_segment_time
+                temp_segment_time = time_counter + self.Minimum_Deco_Stop_Time
+                last_run_time = self.Run_Time
+                self.Run_Time = last_run_time + self.Minimum_Deco_Stop_Time
                 continue
             break
 
-        self.Segment_Time = Temp_Segment_Time
+        self.Segment_Time = temp_segment_time
 
-    def CALC_DECO_CEILING(self):
+    def calc_deco_ceiling(self):
         """
         Purpose: This subprogram calculates the deco ceiling (the safe ascent
         depth) in each compartment, based on the allowable "deco gradients"
@@ -1250,7 +1245,7 @@ class DiveState(object):
 
         Side Effects: None
 
-        Returns: `self.Deco_Ceiling_Depth`
+        Returns: `self.deco_ceiling_depth`
         """
 
         # Since there are two sets of deco gradients being tracked, one for
@@ -1263,43 +1258,43 @@ class DiveState(object):
         # compartment is empty of helium and nitrogen, then the weighted allowable
         # gradient formula cannot be used since it will result in division by zero.
 
-        Compartment_Deco_Ceiling = [0.0 for i in range(16)]
+        compartment_deco_ceiling = [0.0 for i in range(16)]
 
         for i in range(16):
-            Gas_Loading = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i]
+            gas_loading = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i]
 
-            if Gas_Loading > 0.0:
-                Weighted_Allowable_Gradient = (self.Deco_Gradient_He[i] * self.Helium_Pressure[i] + self.Deco_Gradient_N2[i] * self.Nitrogen_Pressure[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i])
+            if gas_loading > 0.0:
+                weighted_allowable_gradient = (self.Deco_Gradient_He[i] * self.Helium_Pressure[i] + self.Deco_Gradient_N2[i] * self.Nitrogen_Pressure[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i])
 
-                Tolerated_Ambient_Pressure = (Gas_Loading + self.Constant_Pressure_Other_Gases) - Weighted_Allowable_Gradient
+                tolerated_ambient_pressure = (gas_loading + self.Constant_Pressure_Other_Gases) - weighted_allowable_gradient
             else:
-                Weighted_Allowable_Gradient = min(self.Deco_Gradient_He[i], self.Deco_Gradient_N2[i])
-                Tolerated_Ambient_Pressure = self.Constant_Pressure_Other_Gases - Weighted_Allowable_Gradient
+                weighted_allowable_gradient = min(self.Deco_Gradient_He[i], self.Deco_Gradient_N2[i])
+                tolerated_ambient_pressure = self.Constant_Pressure_Other_Gases - weighted_allowable_gradient
 
             # The tolerated ambient pressure cannot be less than zero absolute, i.e.,
             # the vacuum of outer space!
-            if Tolerated_Ambient_Pressure < 0.0:
-                Tolerated_Ambient_Pressure = 0.0
+            if tolerated_ambient_pressure < 0.0:
+                tolerated_ambient_pressure = 0.0
 
             # The Deco Ceiling Depth is computed in a loop after all of the individual
             # compartment deco ceilings have been calculated.  It is important that the
             # Deco Ceiling Depth (max deco ceiling across all compartments) only be
             # extracted from the compartment values and not be compared against some
-            # initialization value.  For example, if MAX(Deco_Ceiling_Depth . .) was
+            # initialization value.  For example, if MAX(deco_ceiling_depth . .) was
             # compared against zero, this could cause a program lockup because sometimes
             # the Deco Ceiling Depth needs to be negative (but not less than absolute
             # zero) in order to decompress to the last stop at zero depth.
 
-            Compartment_Deco_Ceiling[i] = Tolerated_Ambient_Pressure - self.Barometric_Pressure
+            compartment_deco_ceiling[i] = tolerated_ambient_pressure - self.Barometric_Pressure
 
-        Deco_Ceiling_Depth = Compartment_Deco_Ceiling[0]
-        # can replace these for loops with just max(Compartment_Deco_Ceiling)
+        deco_ceiling_depth = compartment_deco_ceiling[0]
+        # TODO: can replace these for loops with just max(compartment_deco_ceiling)
         for i in range(1, 16):
-            Deco_Ceiling_Depth = max(Deco_Ceiling_Depth, Compartment_Deco_Ceiling[i])
+            deco_ceiling_depth = max(deco_ceiling_depth, compartment_deco_ceiling[i])
 
-        return Deco_Ceiling_Depth
+        return deco_ceiling_depth
 
-    def CRITICAL_VOLUME(self, Deco_Phase_Volume_Time):
+    def critical_volume(self, deco_phase_volume_time):
         """
         Purpose: This subprogram applies the VPM Critical Volume Algorithm.  This
         algorithm will compute "relaxed" gradients for helium and nitrogen based
@@ -1313,7 +1308,7 @@ class DiveState(object):
         """
 
         # Note:  Since the Critical Volume Parameter Lambda was defined in units of
-        # fsw-min in the original papers by Yount and colleauges, the same
+        # fsw-min in the original papers by Yount and colleagues, the same
         # convention is retained here.  Although Lambda is adjustable only in units
         # of fsw-min in the program settings (range from 6500 to 8300 with default
         # 7500), it will convert to the proper value in Pascals-min in this
@@ -1322,39 +1317,39 @@ class DiveState(object):
         # The allowable gradient is computed using the quadratic formula (refer to
         # separate write-up posted on the Deco List web site).
 
-        Parameter_Lambda_Pascals = (self.Crit_Volume_Parameter_Lambda / 33.0) * self.ATM
-        Phase_Volume_Time = [0.0 for i in range(16)]
+        parameter_lambda_pascals = (self.Crit_Volume_Parameter_Lambda / 33.0) * self.ATM
+        phase_volume_time = [0.0 for i in range(16)]
 
         for i in range(16):
 
-            Phase_Volume_Time = Deco_Phase_Volume_Time + self.Surface_Phase_Volume_Time[i]
+            phase_volume_time = deco_phase_volume_time + self.Surface_Phase_Volume_Time[i]
 
             # Helium Calculations
-            Adj_Crush_Pressure_He_Pascals = (self.Adjusted_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
-            Initial_Allowable_Grad_He_Pa = (self.Initial_Allowable_Gradient_He[i] / self.Units_Factor) * self.ATM
+            adj_crush_pressure_he_pascals = (self.Adjusted_Crushing_Pressure_He[i] / self.Units_Factor) * self.ATM
+            initial_allowable_grad_he_pa = (self.Initial_Allowable_Gradient_He[i] / self.Units_Factor) * self.ATM
 
-            B = Initial_Allowable_Grad_He_Pa + (Parameter_Lambda_Pascals * self.Surface_Tension_Gamma) / (self.Skin_Compression_GammaC * Phase_Volume_Time)
+            B = initial_allowable_grad_he_pa + (parameter_lambda_pascals * self.Surface_Tension_Gamma) / (self.Skin_Compression_GammaC * phase_volume_time)
 
-            C = (self.Surface_Tension_Gamma * (self.Surface_Tension_Gamma * (Parameter_Lambda_Pascals * Adj_Crush_Pressure_He_Pascals))) / (self.Skin_Compression_GammaC * (self.Skin_Compression_GammaC * Phase_Volume_Time))
+            C = (self.Surface_Tension_Gamma * (self.Surface_Tension_Gamma * (parameter_lambda_pascals * adj_crush_pressure_he_pascals))) / (self.Skin_Compression_GammaC * (self.Skin_Compression_GammaC * phase_volume_time))
 
-            New_Allowable_Grad_He_Pascals = (B + sqrt(B ** 2 - 4.0 * C)) / 2.0
+            new_allowable_grad_he_pascals = (B + sqrt(B ** 2 - 4.0 * C)) / 2.0
 
-            self.Allowable_Gradient_He[i] = (New_Allowable_Grad_He_Pascals / self.ATM) * self.Units_Factor
+            self.Allowable_Gradient_He[i] = (new_allowable_grad_he_pascals / self.ATM) * self.Units_Factor
 
             # Nitrogen Calculations
-            Adj_Crush_Pressure_N2_Pascals = (self.Adjusted_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
+            adj_crush_pressure_n2_pascals = (self.Adjusted_Crushing_Pressure_N2[i] / self.Units_Factor) * self.ATM
 
-            Initial_Allowable_Grad_N2_Pa = (self.Initial_Allowable_Gradient_N2[i] / self.Units_Factor) * self.ATM
+            initial_allowable_grad_n2_pa = (self.Initial_Allowable_Gradient_N2[i] / self.Units_Factor) * self.ATM
 
-            B = Initial_Allowable_Grad_N2_Pa + (Parameter_Lambda_Pascals * self.Surface_Tension_Gamma) / (self.Skin_Compression_GammaC * Phase_Volume_Time)
+            B = initial_allowable_grad_n2_pa + (parameter_lambda_pascals * self.Surface_Tension_Gamma) / (self.Skin_Compression_GammaC * phase_volume_time)
 
-            C = (self.Surface_Tension_Gamma * (self.Surface_Tension_Gamma * (Parameter_Lambda_Pascals * Adj_Crush_Pressure_N2_Pascals))) / (self.Skin_Compression_GammaC * (self.Skin_Compression_GammaC * Phase_Volume_Time))
+            C = (self.Surface_Tension_Gamma * (self.Surface_Tension_Gamma * (parameter_lambda_pascals * adj_crush_pressure_n2_pascals))) / (self.Skin_Compression_GammaC * (self.Skin_Compression_GammaC * phase_volume_time))
 
-            New_Allowable_Grad_N2_Pascals = (B + sqrt(B ** 2 - 4.0 * C)) / 2.0
+            new_allowable_grad_n2_pascals = (B + sqrt(B ** 2 - 4.0 * C)) / 2.0
 
-            self.Allowable_Gradient_N2[i] = (New_Allowable_Grad_N2_Pascals / self.ATM) * self.Units_Factor
+            self.Allowable_Gradient_N2[i] = (new_allowable_grad_n2_pascals / self.ATM) * self.Units_Factor
 
-    def CALC_SURFACE_PHASE_VOLUME_TIME(self):
+    def calc_surface_phase_volume_time(self):
         """
         Purpose: This subprogram computes the surface portion of the total phase
         volume time.  This is the time factored out of the integration of
@@ -1373,18 +1368,18 @@ class DiveState(object):
         Returns: None
         """
 
-        Surface_Inspired_N2_Pressure = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
+        surface_inspired_n2_pressure = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
         for i in range(16):
-            if self.Nitrogen_Pressure[i] > Surface_Inspired_N2_Pressure:
+            if self.Nitrogen_Pressure[i] > surface_inspired_n2_pressure:
 
-                self.Surface_Phase_Volume_Time[i] = (self.Helium_Pressure[i] / self.Helium_Time_Constant[i] + (self.Nitrogen_Pressure[i] - Surface_Inspired_N2_Pressure) / self.Nitrogen_Time_Constant[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] - Surface_Inspired_N2_Pressure)
+                self.Surface_Phase_Volume_Time[i] = (self.Helium_Pressure[i] / self.Helium_Time_Constant[i] + (self.Nitrogen_Pressure[i] - surface_inspired_n2_pressure) / self.Nitrogen_Time_Constant[i]) / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] - surface_inspired_n2_pressure)
 
-            elif (self.Nitrogen_Pressure[i] <= Surface_Inspired_N2_Pressure) and (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] >= Surface_Inspired_N2_Pressure):
-                Decay_Time_to_Zero_Gradient = 1.0 / (self.Nitrogen_Time_Constant[i] - self.Helium_Time_Constant[i]) * log((Surface_Inspired_N2_Pressure - self.Nitrogen_Pressure[i]) / self.Helium_Pressure[i])
+            elif (self.Nitrogen_Pressure[i] <= surface_inspired_n2_pressure) and (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] >= surface_inspired_n2_pressure):
+                decay_time_to_zero_gradient = 1.0 / (self.Nitrogen_Time_Constant[i] - self.Helium_Time_Constant[i]) * log((surface_inspired_n2_pressure - self.Nitrogen_Pressure[i]) / self.Helium_Pressure[i])
 
-                Integral_Gradient_x_Time = self.Helium_Pressure[i] / self.Helium_Time_Constant[i] * (1.0 - exp(-self.Helium_Time_Constant[i] * Decay_Time_to_Zero_Gradient)) + (self.Nitrogen_Pressure[i] - Surface_Inspired_N2_Pressure) / self.Nitrogen_Time_Constant[i] * (1.0 - exp(-self.Nitrogen_Time_Constant[i] * Decay_Time_to_Zero_Gradient))
+                integral_gradient_x_time = self.Helium_Pressure[i] / self.Helium_Time_Constant[i] * (1.0 - exp(-self.Helium_Time_Constant[i] * decay_time_to_zero_gradient)) + (self.Nitrogen_Pressure[i] - surface_inspired_n2_pressure) / self.Nitrogen_Time_Constant[i] * (1.0 - exp(-self.Nitrogen_Time_Constant[i] * decay_time_to_zero_gradient))
 
-                self.Surface_Phase_Volume_Time[i] = Integral_Gradient_x_Time / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] - Surface_Inspired_N2_Pressure)
+                self.Surface_Phase_Volume_Time[i] = integral_gradient_x_time / (self.Helium_Pressure[i] + self.Nitrogen_Pressure[i] - surface_inspired_n2_pressure)
 
             else:
                 self.Surface_Phase_Volume_Time[i] = 0.0
@@ -1559,7 +1554,7 @@ class DiveState(object):
 
         if self.Altitude_Dive_Algorithm_Off:
             self.Altitude_of_Dive = 0.0
-            self.Barometric_Pressure = CALC_BAROMETRIC_PRESSURE(self.Altitude_of_Dive, self.units_fsw)
+            self.Barometric_Pressure = calc_barometric_pressure(self.Altitude_of_Dive, self.units_fsw)
 
             for i in range(16):
                 self.Adjusted_Critical_Radius_N2[i] = self.Initial_Critical_Radius_N2[i]
@@ -1567,11 +1562,11 @@ class DiveState(object):
                 self.Helium_Pressure[i] = 0.0
                 self.Nitrogen_Pressure[i] = (self.Barometric_Pressure - self.Water_Vapor_Pressure) * self.fraction_inert_gas
         else:
-            self.VPM_ALTITUDE_DIVE_ALGORITHM(self.altitude_values)
+            self.vpm_altitude_dive_algorithm(self.altitude_values)
 
     def set_gas_mixes(self, dive):
         """
-        Purpose: Checks the given gas mix fractions add up to 1.0, and addes them
+        Purpose: Checks the given gas mix fractions add up to 1.0, and adds them
         to the object
 
         Side Effects: Sets
@@ -1585,22 +1580,22 @@ class DiveState(object):
         Returns: None
         """
         num_gas_mixes = dive["num_gas_mixes"]
-        Fraction_Oxygen = [0.0 for i in range(num_gas_mixes)]
+        fraction_oxygen = [0.0 for i in range(num_gas_mixes)]
         self.Fraction_Helium = [0.0 for i in range(num_gas_mixes)]
         self.Fraction_Nitrogen = [0.0 for i in range(num_gas_mixes)]
 
         for i in range(num_gas_mixes):
             gasmix_summary = dive["gasmix_summary"]
-            Fraction_Oxygen[i] = gasmix_summary[i]["fraction_O2"]
+            fraction_oxygen[i] = gasmix_summary[i]["fraction_O2"]
             self.Fraction_Nitrogen[i] = gasmix_summary[i]["fraction_N2"]
             self.Fraction_Helium[i] = gasmix_summary[i]["fraction_He"]
-            Sum_of_Fractions = Fraction_Oxygen[i] + self.Fraction_Nitrogen[i] + self.Fraction_Helium[i]
+            sum_of_fractions = fraction_oxygen[i] + self.Fraction_Nitrogen[i] + self.Fraction_Helium[i]
 
-            if Sum_of_Fractions != 1.0:
+            if sum_of_fractions != 1.0:
                 raise InputFileException("ERROR IN INPUT FILE (gas mixes don't add up to 1.0")
 
         for i in range(num_gas_mixes):
-            self.output_object.add_gasmix(Fraction_Oxygen[i], self.Fraction_Nitrogen[i], self.Fraction_Helium[i])
+            self.output_object.add_gasmix(fraction_oxygen[i], self.Fraction_Nitrogen[i], self.Fraction_Helium[i])
 
     def profile_code_loop(self, dive):
         """
@@ -1633,41 +1628,40 @@ class DiveState(object):
         Returns: None
         """
         for profile in dive["profile_codes"]:
-            Profile_Code = profile["profile_code"]
+            profile_code = profile["profile_code"]
 
-            if Profile_Code == 1:
+            if profile_code == 1:
                 self.Starting_Depth = profile["starting_depth"]
                 self.Ending_Depth = profile["ending_depth"]
                 self.Rate = profile["rate"]
                 self.Mix_Number = profile["gasmix"]
 
-                self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Ending_Depth, self.Rate)
+                self.gas_loadings_ascent_descent(self.Starting_Depth, self.Ending_Depth, self.Rate)
                 if self.Ending_Depth > self.Starting_Depth:
-                    self.CALC_CRUSHING_PRESSURE(self.Starting_Depth, self.Ending_Depth, self.Rate)
+                    self.calc_crushing_pressure(self.Starting_Depth, self.Ending_Depth, self.Rate)
 
                 # the error seems unnecessary
-                Word = ""
                 if self.Ending_Depth > self.Starting_Depth:
-                    Word = 'Descent'
+                    word = 'Descent'
                 elif self.Starting_Depth > self.Ending_Depth:
-                    Word = 'Ascent '
+                    word = 'Ascent '
                 else:
-                    Word = 'ERROR'
+                    word = 'ERROR'
 
-                self.output_object.add_dive_profile_entry_descent(self.Segment_Number, self.Segment_Time, self.Run_Time, self.Mix_Number, Word, self.Starting_Depth, self.Ending_Depth, self.Rate)
+                self.output_object.add_dive_profile_entry_descent(self.Segment_Number, self.Segment_Time, self.Run_Time, self.Mix_Number, word, self.Starting_Depth, self.Ending_Depth, self.Rate)
 
-            elif Profile_Code == 2:
+            elif profile_code == 2:
                 self.Depth = profile["depth"]
                 self.Run_Time_End_of_Segment = profile["run_time_at_end_of_segment"]
                 self.Mix_Number = profile["gasmix"]
 
-                self.GAS_LOADINGS_CONSTANT_DEPTH(self.Depth, self.Run_Time_End_of_Segment)
+                self.gas_loadings_constant_depth(self.Depth, self.Run_Time_End_of_Segment)
 
                 self.output_object.add_dive_profile_entry_ascent(self.Segment_Number, self.Segment_Time, self.Run_Time, self.Mix_Number, self.Depth)
-            elif Profile_Code == 99:
+            elif profile_code == 99:
                 break
             else:
-                raise InputFileException("Invalid profile code %d. Valid profile codes are 1 (descent), 2 (constant), and 99 (ascent)" % (Profile_Code))
+                raise InputFileException("Invalid profile code %d. Valid profile codes are 1 (descent), 2 (constant), and 99 (ascent)" % (profile_code))
 
     def deco_stop_loop_block_within_critical_volume_loop(self):
         """
@@ -1695,7 +1689,7 @@ class DiveState(object):
         Returns: None
         """
         while True:
-            self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
+            self.gas_loadings_ascent_descent(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
 
             if self.Deco_Stop_Depth <= 0.0:
                 break
@@ -1707,9 +1701,9 @@ class DiveState(object):
                         self.Rate = self.Rate_Change[i]
                         self.Step_Size = self.Step_Size_Change[i]
 
-            self.BOYLES_LAW_COMPENSATION(self.First_Stop_Depth, self.Deco_Stop_Depth, self.Step_Size)
+            self.boyles_law_compensation(self.First_Stop_Depth, self.Deco_Stop_Depth, self.Step_Size)
 
-            self.DECOMPRESSION_STOP(self.Deco_Stop_Depth, self.Step_Size)
+            self.decompression_stop(self.Deco_Stop_Depth, self.Step_Size)
 
             self.Starting_Depth = self.Deco_Stop_Depth
             self.Next_Stop = self.Deco_Stop_Depth - self.Step_Size
@@ -1752,12 +1746,12 @@ class DiveState(object):
         # DECO STOP LOOP BLOCK FOR FINAL DECOMPRESSION SCHEDULE
 
         while True:
-            self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
+            self.gas_loadings_ascent_descent(self.Starting_Depth, self.Deco_Stop_Depth, self.Rate)
             # DURING FINAL DECOMPRESSION SCHEDULE PROCESS, COMPUTE MAXIMUM ACTUAL
             # SUPERSATURATION GRADIENT RESULTING IN EACH COMPARTMENT
             # If there is a repetitive dive, this will be used later in the VPM
             # Repetitive Algorithm to adjust the values for critical radii.
-            self.CALC_MAX_ACTUAL_GRADIENT(self.Deco_Stop_Depth)
+            self.calc_max_actual_gradient(self.Deco_Stop_Depth)
 
             self.output_object.add_decompression_profile_ascent(self.Segment_Number, self.Segment_Time, self.Run_Time, self.Mix_Number, self.Deco_Stop_Depth, self.Rate)
             if self.Deco_Stop_Depth <= 0.0:
@@ -1770,9 +1764,9 @@ class DiveState(object):
                         self.Rate = self.Rate_Change[i]
                         self.Step_Size = self.Step_Size_Change[i]
 
-            self.BOYLES_LAW_COMPENSATION(self.First_Stop_Depth, self.Deco_Stop_Depth, self.Step_Size)
-            self.DECOMPRESSION_STOP(self.Deco_Stop_Depth, self.Step_Size)
-            # This next bit justs rounds up the stop time at the first stop to be in
+            self.boyles_law_compensation(self.First_Stop_Depth, self.Deco_Stop_Depth, self.Step_Size)
+            self.decompression_stop(self.Deco_Stop_Depth, self.Step_Size)
+            # This next bit just rounds up the stop time at the first stop to be in
             # whole increments of the minimum stop time (to make for a nice deco table).
 
             if self.Last_Run_Time == 0.0:
@@ -1850,12 +1844,12 @@ class DiveState(object):
             # GRADIENTS AND SET FIRST DECO STOP.  CHECK TO MAKE SURE THAT SELECTED STEP
             # SIZE WILL NOT ROUND UP FIRST STOP TO A DEPTH THAT IS BELOW THE DECO ZONE.
 
-            self.CALC_ASCENT_CEILING()
+            self.calc_ascent_ceiling()
             if self.Ascent_Ceiling_Depth <= 0.0:
                 self.Deco_Stop_Depth = 0.0
             else:
-                Rounding_Operation2 = (self.Ascent_Ceiling_Depth / self.Step_Size) + 0.5
-                self.Deco_Stop_Depth = round(Rounding_Operation2) * self.Step_Size
+                rounding_operation2 = (self.Ascent_Ceiling_Depth / self.Step_Size) + 0.5
+                self.Deco_Stop_Depth = round(rounding_operation2) * self.Step_Size
 
             if self.Deco_Stop_Depth > self.Depth_Start_of_Deco_Zone:
                 raise DecompressionStepException("ERROR! STEP SIZE IS TOO LARGE TO DECOMPRESS")
@@ -1869,7 +1863,7 @@ class DiveState(object):
             # CHECK AGAIN TO MAKE SURE THAT ADJUSTED FIRST STOP WILL NOT BE BELOW THE
             # DECO ZONE.
 
-            self.PROJECTED_ASCENT(self.Depth_Start_of_Deco_Zone, self.Rate, self.Step_Size)
+            self.projected_ascent(self.Depth_Start_of_Deco_Zone, self.Rate, self.Step_Size)
 
             if self.Deco_Stop_Depth > self.Depth_Start_of_Deco_Zone:
                 raise DecompressionStepException("ERROR! STEP SIZE IS TOO LARGE TO DECOMPRESS")
@@ -1887,7 +1881,7 @@ class DiveState(object):
                 self.Segment_Number = self.Segment_Number_Start_of_Ascent
                 self.Starting_Depth = self.Depth_Change[0]
                 self.Ending_Depth = 0.0
-                self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Ending_Depth, self.Rate)
+                self.gas_loadings_ascent_descent(self.Starting_Depth, self.Ending_Depth, self.Rate)
 
                 self.output_object.add_decompression_profile_ascent(self.Segment_Number, self.Segment_Time, self.Run_Time, self.Mix_Number, self.Deco_Stop_Depth, self.Rate)
                 break
@@ -1914,7 +1908,7 @@ class DiveState(object):
             # as a result of allowing a certain number of excess bubbles to form.
             self.Deco_Phase_Volume_Time = self.Run_Time - self.Run_Time_Start_of_Deco_Zone
 
-            self.CALC_SURFACE_PHASE_VOLUME_TIME()
+            self.calc_surface_phase_volume_time()
 
             for i in range(16):
                 self.Phase_Volume_Time[i] = self.Deco_Phase_Volume_Time + self.Surface_Phase_Volume_Time[i]
@@ -1922,7 +1916,7 @@ class DiveState(object):
                 if self.Critical_Volume_Comparison <= 1.0:
                     self.Schedule_Converged = True
 
-            # There are two options here.  If the Critical Volume Agorithm setting is
+            # There are two options here.  If the Critical Volume Algorithm setting is
             # "on" and the schedule is converged, or the Critical Volume Algorithm
             # setting was "off" in the first place, the program will re-assign variables
             # to their values at the start of ascent (end of bottom time) and process
@@ -1931,13 +1925,13 @@ class DiveState(object):
             # the last iteration of the Critical Volume Loop and the program will write
             # the final deco schedule to the output file.
 
-            # Note: if the Critical Volume Agorithm setting was "off", the final deco
+            # Note: if the Critical Volume Algorithm setting was "off", the final deco
             # schedule will be based on "Initial Allowable Supersaturation Gradients."
             # If it was "on", the final schedule will be based on "Adjusted Allowable
             # Supersaturation Gradients" (gradients that are "relaxed" as a result of
             # the Critical Volume Algorithm).
 
-            # If the Critical Volume Agorithm setting is "on" and the schedule is not
+            # If the Critical Volume Algorithm setting is "on" and the schedule is not
             # converged, the program will re-assign variables to their values at the
             # start of the deco zone and process another trial decompression schedule.
 
@@ -1945,7 +1939,7 @@ class DiveState(object):
                 self.critical_volume_decision_tree()
 
             else:
-                self.CRITICAL_VOLUME(self.Deco_Phase_Volume_Time)
+                self.critical_volume(self.Deco_Phase_Volume_Time)
                 self.Deco_Phase_Volume_Time = 0.0
                 self.Run_Time = self.Run_Time_Start_of_Deco_Zone
                 self.Starting_Depth = self.Depth_Start_of_Deco_Zone
@@ -1999,12 +1993,12 @@ class DiveState(object):
         # the dive time.  The regeneration time constant has a time scale of weeks
         # so this will have very little impact on dives of normal length, but will
         # have major impact for saturation dives.
-        self.NUCLEAR_REGENERATION(self.Run_Time)
+        self.nuclear_regeneration(self.Run_Time)
 
         #   CALCULATE INITIAL ALLOWABLE GRADIENTS FOR ASCENT
         #   This is based on the maximum effective crushing pressure on critical radii
         #   in each compartment achieved during the dive profile.
-        self.CALC_INITIAL_ALLOWABLE_GRADIENT()
+        self.calc_initial_allowable_gradient()
 
         #     SAVE VARIABLES AT START OF ASCENT (END OF BOTTOM TIME) SINCE THESE WILL
         #     BE USED LATER TO COMPUTE THE FINAL ASCENT PROFILE THAT IS WRITTEN TO THE
@@ -2020,14 +2014,14 @@ class DiveState(object):
         self.Segment_Number_Start_of_Ascent = self.Segment_Number
 
         #     INPUT PARAMETERS TO BE USED FOR STAGED DECOMPRESSION AND SAVE IN ARRAYS.
-        #     ASSIGN INITAL PARAMETERS TO BE USED AT START OF ASCENT
+        #     ASSIGN INITIAL PARAMETERS TO BE USED AT START OF ASCENT
         #     The user has the ability to change mix, ascent rate, and step size in any
         #     combination at any depth during the ascent.
 
         for profile in dive["profile_codes"]:
-            Profile_Code = profile["profile_code"]
+            profile_code = profile["profile_code"]
 
-            if Profile_Code == 99:
+            if profile_code == 99:
                 self.Number_of_Changes = profile["number_of_ascent_parameter_changes"]
                 self.Depth_Change = [0.0 for i in range(self.Number_of_Changes)]
                 self.Mix_Change = [0.0 for i in range(self.Number_of_Changes)]
@@ -2059,7 +2053,7 @@ class DiveState(object):
         # it is information to tell the diver where to start putting on the brakes
         # during ascent.  This should be prominently displayed by any deco program.
 
-        self.CALC_START_OF_DECO_ZONE(self.Starting_Depth, self.Rate)
+        self.calc_start_of_deco_zone(self.Starting_Depth, self.Rate)
 
         if self.units_fsw:
             if self.Step_Size < 10.0:
@@ -2084,7 +2078,7 @@ class DiveState(object):
         #     released as a result of supersaturation gradients (not possible below the
         #     decompression zone).
 
-        self.GAS_LOADINGS_ASCENT_DESCENT(self.Starting_Depth, self.Depth_Start_of_Deco_Zone, self.Rate)
+        self.gas_loadings_ascent_descent(self.Starting_Depth, self.Depth_Start_of_Deco_Zone, self.Rate)
         self.Run_Time_Start_of_Deco_Zone = self.Run_Time
         self.Deco_Phase_Volume_Time = 0.0
         self.Last_Run_Time = 0.0
@@ -2136,9 +2130,9 @@ class DiveState(object):
 
             # PROCESSING OF DIVE COMPLETE.  READ INPUT FILE TO DETERMINE IF THERE IS A
             # REPETITIVE DIVE.  IF NONE, THEN EXIT REPETITIVE LOOP.
-            Repetitive_Dive_Flag = dive["repetitive_code"]
+            repetitive_dive_flag = dive["repetitive_code"]
 
-            if Repetitive_Dive_Flag == 0:
+            if repetitive_dive_flag == 0:
                 continue
 
             # IF THERE IS A REPETITIVE DIVE, COMPUTE GAS LOADINGS (OFF-GASSING) DURING
@@ -2146,11 +2140,11 @@ class DiveState(object):
             # ALGORITHM.  RE-INITIALIZE SELECTED VARIABLES AND RETURN TO START OF
             # REPETITIVE LOOP AT LINE 30.
 
-            elif Repetitive_Dive_Flag == 1:
+            elif repetitive_dive_flag == 1:
                 self.Surface_Interval_Time = dive["surface_interval_time_minutes"]
 
-                self.GAS_LOADINGS_SURFACE_INTERVAL(self.Surface_Interval_Time)
-                self.VPM_REPETITIVE_ALGORITHM(self.Surface_Interval_Time)
+                self.gas_loadings_surface_interval(self.Surface_Interval_Time)
+                self.vpm_repetitive_algorithm(self.Surface_Interval_Time)
 
                 for i in range(16):
                     self.Max_Crushing_Pressure_He[i] = 0.0
@@ -2164,12 +2158,12 @@ class DiveState(object):
                 continue
 
             else:
-                raise InputFileException("Invalid repetitive dive flag %d. Must be 0 (don't repeat) or 1 (repeat)" % (Repetitive_Dive_Flag))
+                raise InputFileException("Invalid repetitive dive flag %d. Must be 0 (don't repeat) or 1 (repeat)" % (repetitive_dive_flag))
 
         # pycallgraph.make_dot_graph('pycallgraph.png')
 
 
-class Output(object):
+class HtmlOutput(object):
     """Provides a convenient dumping ground for output. Can be exported to json and html
     """
 
@@ -2182,7 +2176,7 @@ class Output(object):
         """Creates a new dive hash table and updates the current dive to
         point at the newly created hash"""
         self.output.append({"desc": description,
-                            "time": str(datetime.datetime.now().strftime("%B %d, %Y at %H:%M")),  # make this cofigurable
+                            "time": str(datetime.datetime.now().strftime("%B %d, %Y at %H:%M")),  # make this configurable
                             "gasmix": [],
                             "dive_profile": [],
                             "decompression_profile": []})
@@ -2198,29 +2192,29 @@ class Output(object):
                                                          "nitrogen": nitrogen,
                                                          "helium": helium})
 
-    def add_dive_profile_entry_ascent(self, Segment_Number, Segment_Time, Run_Time, Mix_Number, Depth):
+    def add_dive_profile_entry_ascent(self, segment_number, segment_time, run_time, mix_number, depth):
         """Adds a new ascent entry to the dive profile table"""
         split = "%d|%6.1f |%6.1f | %d |  | | | | %6.1f| " \
-                % (Segment_Number, Segment_Time, Run_Time, Mix_Number, Depth)
+                % (segment_number, segment_time, run_time, mix_number, depth)
         self.output[self.current_dive]["dive_profile"].append(split.split("|"))
 
-    def add_dive_profile_entry_descent(self, Segment_Number, Segment_Time, Run_Time, Mix_Number, Word, Starting_Depth, Ending_Depth, Rate):
+    def add_dive_profile_entry_descent(self, segment_number, segment_time, run_time, mix_number, word, starting_depth, ending_depth, rate):
         """Adds a new descent entry to the dive profile table"""
         split = "%d|%6.1f |%6.1f | %d | %s | %6.1f| %6.1f| %6.1f| |" \
-                % (Segment_Number, Segment_Time, Run_Time, Mix_Number, Word, Starting_Depth, Ending_Depth, Rate)
+                % (segment_number, segment_time, run_time, mix_number, word, starting_depth, ending_depth, rate)
         self.output[self.current_dive]["dive_profile"].append(split.split("|"))
 
-    def add_decompression_profile_ascent(self, Segment_Number, Segment_Time, Run_Time, Mix_Number, Deco_Stop_Depth, Rate):
+    def add_decompression_profile_ascent(self, segment_number, segment_time, run_time, mix_number, deco_stop_depth, rate):
         """Adds a new ascent entry to the decompression table"""
         split = "%d|%5.1f|%6.1f|%d|%d|%d | | |" \
-                % (Segment_Number, Segment_Time, Run_Time, Mix_Number, Deco_Stop_Depth, Rate)
+                % (segment_number, segment_time, run_time, mix_number, deco_stop_depth, rate)
         self.output[self.current_dive]["decompression_profile"].append(split.split("|"))
 
-    def add_decompression_profile_constant(self, Segment_Number, Segment_Time, Run_Time, Mix_Number, Deco_Stop_Depth, Stop_Time):
+    def add_decompression_profile_constant(self, segment_number, segment_time, run_time, mix_number, deco_stop_depth, stop_time):
         """Adds a new constant depth entry to the decompression table"""
 
         split = "%d|%5.1f|%6.1f|%d| | |%d|%d|%d|" \
-                % (Segment_Number, Segment_Time, Run_Time, Mix_Number, Deco_Stop_Depth, Stop_Time, int(Run_Time))
+                % (segment_number, segment_time, run_time, mix_number, deco_stop_depth, stop_time, int(run_time))
         self.output[self.current_dive]["decompression_profile"].append(split.split("|"))
 
     def to_html(self, filename=None):
@@ -2390,17 +2384,17 @@ class Output(object):
 
 
 # functions
-def SCHREINER_EQUATION(Initial_Inspired_Gas_Pressure, Rate_Change_Insp_Gas_Pressure, Interval_Time, Gas_Time_Constant, Initial_Gas_Pressure):
+def schreiner_equation(initial_inspired_gas_pressure, rate_change_insp_gas_pressure, interval_time, gas_time_constant, initial_gas_pressure):
     """Function for ascent and descent gas loading calculations"""
-    return Initial_Inspired_Gas_Pressure + Rate_Change_Insp_Gas_Pressure * (Interval_Time - 1.0 / Gas_Time_Constant) - (Initial_Inspired_Gas_Pressure - Initial_Gas_Pressure - Rate_Change_Insp_Gas_Pressure / Gas_Time_Constant) * exp(-Gas_Time_Constant * Interval_Time)
+    return initial_inspired_gas_pressure + rate_change_insp_gas_pressure * (interval_time - 1.0 / gas_time_constant) - (initial_inspired_gas_pressure - initial_gas_pressure - rate_change_insp_gas_pressure / gas_time_constant) * exp(-gas_time_constant * interval_time)
 
 
-def HALDANE_EQUATION(Initial_Gas_Pressure, Inspired_Gas_Pressure, Gas_Time_Constant, Interval_Time):
+def haldane_equation(initial_gas_pressure, inspired_gas_pressure, gas_time_constant, interval_time):
     """Function for gas loading calculations at a constant depth"""
-    return Initial_Gas_Pressure + (Inspired_Gas_Pressure - Initial_Gas_Pressure) * (1.0 - exp(-Gas_Time_Constant * Interval_Time))
+    return initial_gas_pressure + (inspired_gas_pressure - initial_gas_pressure) * (1.0 - exp(-gas_time_constant * interval_time))
 
 
-def RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound):
+def radius_root_finder(A, B, C, low_bound, high_bound):
     """
     Purpose: This subroutine is a "fail-safe" routine that combines the
     Bisection Method and the Newton-Raphson Method to find the desired root.
@@ -2421,32 +2415,32 @@ def RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound):
     # In this case we are solving for radius in a cubic equation of the form,
     # Ar^3 - Br^2 - C = 0.  The coefficients A, B, and C were passed to this
     # subroutine as arguments.
-    Function_at_Low_Bound = Low_Bound * (Low_Bound * (A * Low_Bound - B)) - C
+    function_at_low_bound = low_bound * (low_bound * (A * low_bound - B)) - C
 
-    Function_at_High_Bound = High_Bound * (High_Bound * (A * High_Bound - B)) - C
+    function_at_high_bound = high_bound * (high_bound * (A * high_bound - B)) - C
 
-    if Function_at_Low_Bound > 0.0 and Function_at_High_Bound > 0.0:
+    if function_at_low_bound > 0.0 and function_at_high_bound > 0.0:
         raise RootException("ERROR! ROOT IS NOT WITHIN BRACKETS")
 
     # Next the algorithm checks for special conditions and then prepares for
     # the first bisection.
-    if Function_at_Low_Bound < 0.0 and Function_at_High_Bound < 0.0:
+    if function_at_low_bound < 0.0 and function_at_high_bound < 0.0:
         raise RootException("ERROR! ROOT IS NOT WITHIN BRACKETS")
 
-    if Function_at_Low_Bound == 0.0:
-        return Low_Bound
-    elif Function_at_High_Bound == 0.0:
-        return High_Bound
-    elif Function_at_Low_Bound < 0.0:
-        Radius_at_Low_Bound = Low_Bound
-        Radius_at_High_Bound = High_Bound
+    if function_at_low_bound == 0.0:
+        return low_bound
+    elif function_at_high_bound == 0.0:
+        return high_bound
+    elif function_at_low_bound < 0.0:
+        radius_at_low_bound = low_bound
+        radius_at_high_bound = high_bound
     else:
-        Radius_at_High_Bound = Low_Bound
-        Radius_at_Low_Bound = High_Bound
+        radius_at_high_bound = low_bound
+        radius_at_low_bound = high_bound
 
-    Ending_Radius = 0.5 * (Low_Bound + High_Bound)
-    Last_Diff_Change = abs(High_Bound - Low_Bound)
-    Differential_Change = Last_Diff_Change
+    ending_radius = 0.5 * (low_bound + high_bound)
+    last_diff_change = abs(high_bound - low_bound)
+    differential_change = last_diff_change
 
     # At this point, the Newton-Raphson Method is applied which uses a function
     # and its first derivative to rapidly converge upon a solution.
@@ -2457,46 +2451,46 @@ def RADIUS_ROOT_FINDER(A, B, C, Low_Bound, High_Bound):
     # loop by returning to the calling program.  The last value of ending
     # radius has been assigned as the solution.
 
-    Function = Ending_Radius * (Ending_Radius * (A * Ending_Radius - B)) - C
+    function = ending_radius * (ending_radius * (A * ending_radius - B)) - C
 
-    Derivative_of_Function = Ending_Radius * (Ending_Radius * 3.0 * A - 2.0 * B)
+    derivative_of_function = ending_radius * (ending_radius * 3.0 * A - 2.0 * B)
 
     for i in range(100):
         # TODO: Choose better name for the 'a' and 'b' checks
-        a = (((Ending_Radius - Radius_at_High_Bound) * Derivative_of_Function - Function) *
-             ((Ending_Radius - Radius_at_Low_Bound) * Derivative_of_Function - Function) >= 0.0)
-        b = (abs(2.0 * Function) > (abs(Last_Diff_Change * Derivative_of_Function)))
+        a = (((ending_radius - radius_at_high_bound) * derivative_of_function - function) *
+             ((ending_radius - radius_at_low_bound) * derivative_of_function - function) >= 0.0)
+        b = (abs(2.0 * function) > (abs(last_diff_change * derivative_of_function)))
 
         if a or b:
 
-            Last_Diff_Change = Differential_Change
-            Differential_Change = 0.5 * (Radius_at_High_Bound - Radius_at_Low_Bound)
+            last_diff_change = differential_change
+            differential_change = 0.5 * (radius_at_high_bound - radius_at_low_bound)
 
-            Ending_Radius = Radius_at_Low_Bound + Differential_Change
-            if Radius_at_Low_Bound == Ending_Radius:
-                return Ending_Radius
+            ending_radius = radius_at_low_bound + differential_change
+            if radius_at_low_bound == ending_radius:
+                return ending_radius
         else:
-            Last_Diff_Change = Differential_Change
-            Differential_Change = Function / Derivative_of_Function
-            Last_Ending_Radius = Ending_Radius
-            Ending_Radius = Ending_Radius - Differential_Change
-            if Last_Ending_Radius == Ending_Radius:
-                return Ending_Radius
-        if abs(Differential_Change) < 1.0E-12:
-            return Ending_Radius
-        Function = Ending_Radius * (Ending_Radius * (A * Ending_Radius - B)) - C
+            last_diff_change = differential_change
+            differential_change = function / derivative_of_function
+            last_ending_radius = ending_radius
+            ending_radius = ending_radius - differential_change
+            if last_ending_radius == ending_radius:
+                return ending_radius
+        if abs(differential_change) < 1.0E-12:
+            return ending_radius
+        function = ending_radius * (ending_radius * (A * ending_radius - B)) - C
 
-        Derivative_of_Function = Ending_Radius * (Ending_Radius * 3.0 * A - 2.0 * B)
+        derivative_of_function = ending_radius * (ending_radius * 3.0 * A - 2.0 * B)
 
-        if Function < 0.0:
-            Radius_at_Low_Bound = Ending_Radius
+        if function < 0.0:
+            radius_at_low_bound = ending_radius
         else:
-            Radius_at_High_Bound = Ending_Radius
+            radius_at_high_bound = ending_radius
 
     raise MaxIterationException('ERROR! ROOT SEARCH EXCEEDED MAXIMUM ITERATIONS')
 
 
-def CALC_BAROMETRIC_PRESSURE(Altitude, units_fsw):
+def calc_barometric_pressure(altitude, units_fsw):
     """
     Purpose: This function calculates barometric pressure at altitude based on the
     publication "U.S. Standard Atmosphere, 1976", U.S. Government Printing
@@ -2511,38 +2505,38 @@ def CALC_BAROMETRIC_PRESSURE(Altitude, units_fsw):
     Returns: A floating point value
     """
 
-    Radius_of_Earth = 6369.0  # kilometers
-    Acceleration_of_Gravity = 9.80665  # meters/second^2
-    Molecular_weight_of_Air = 28.9644  # mols
-    Gas_Constant_R = 8.31432  # Joules/mol*deg Kelvin
-    Temp_at_Sea_Level = 288.15  # degrees Kelvin
+    radius_of_earth = 6369.0  # kilometers
+    acceleration_of_gravity = 9.80665  # meters/second^2
+    molecular_weight_of_air = 28.9644  # mols
+    gas_constant_r = 8.31432  # Joules/mol*deg Kelvin
+    temp_at_sea_level = 288.15  # degrees Kelvin
 
-    Pressure_at_Sea_Level_Fsw = 33.0  # feet of seawater based on 101325 Pa at sea level (Standard Atmosphere)
+    pressure_at_sea_level_fsw = 33.0  # feet of seawater based on 101325 Pa at sea level (Standard Atmosphere)
 
-    Pressure_at_Sea_Level_Msw = 10.0  # meters of seawater based on 100000 Pa at sea level (European System)
+    pressure_at_sea_level_msw = 10.0  # meters of seawater based on 100000 Pa at sea level (European System)
 
     # Change in Temp deg Kelvin with
     # change in geopotential altitude,
     # valid for first layer of atmosphere
     # up to 11 kilometers or 36,000 feet
-    Temp_Gradient = -6.5
+    temp_gradient = -6.5
 
-    GMR_Factor = Acceleration_of_Gravity * Molecular_weight_of_Air / Gas_Constant_R
+    gmr_factor = acceleration_of_gravity * molecular_weight_of_air / gas_constant_r
 
     if units_fsw:
-        Altitude_Feet = Altitude
-        Altitude_Kilometers = Altitude_Feet / 3280.839895
-        Pressure_at_Sea_Level = Pressure_at_Sea_Level_Fsw
+        altitude_feet = altitude
+        altitude_kilometers = altitude_feet / 3280.839895
+        pressure_at_sea_level = pressure_at_sea_level_fsw
     else:
-        Altitude_Meters = Altitude
-        Altitude_Kilometers = Altitude_Meters / 1000.0
-        Pressure_at_Sea_Level = Pressure_at_Sea_Level_Msw
+        altitude_meters = altitude
+        altitude_kilometers = altitude_meters / 1000.0
+        pressure_at_sea_level = pressure_at_sea_level_msw
 
-    Geopotential_Altitude = (Altitude_Kilometers * Radius_of_Earth) / (Altitude_Kilometers + Radius_of_Earth)
-    Temp_at_Geopotential_Altitude = Temp_at_Sea_Level + Temp_Gradient * Geopotential_Altitude
+    geopotential_altitude = (altitude_kilometers * radius_of_earth) / (altitude_kilometers + radius_of_earth)
+    temp_at_geopotential_altitude = temp_at_sea_level + temp_gradient * geopotential_altitude
 
-    Barometric_Pressure = Pressure_at_Sea_Level * exp(log(Temp_at_Sea_Level / Temp_at_Geopotential_Altitude) * GMR_Factor / Temp_Gradient)
-    return Barometric_Pressure
+    barometric_pressure = pressure_at_sea_level * exp(log(temp_at_sea_level / temp_at_geopotential_altitude) * gmr_factor / temp_gradient)
+    return barometric_pressure
 
 
 def parse_settings():
@@ -2570,9 +2564,7 @@ def parse_settings():
     parser.add_argument("-j", action="store", dest="json_output", default=None,
                         help="Output json instead of html")
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 # if they ran this at the command line, output the parse the command line
 # options and output the results
