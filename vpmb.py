@@ -161,32 +161,32 @@ class DiveState(object):
         self.Altitude_of_Dive = 0.0
         self.Deco_Phase_Volume_Time = 0.0
         self.Surface_Interval_Time = 0.0
-        self.Regenerated_Radius_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Regenerated_Radius_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Regenerated_Radius_He = [0.0] * ARRAY_LENGTH
+        self.Regenerated_Radius_N2 = [0.0] * ARRAY_LENGTH
 
         # Global Arrays
         self.Mix_Change = []
         self.Depth_Change = []
         self.Rate_Change = []
         self.Step_Size_Change = []
-        self.He_Pressure_Start_of_Ascent = [0.0 for i in range(ARRAY_LENGTH)]
-        self.N2_Pressure_Start_of_Ascent = [0.0 for i in range(ARRAY_LENGTH)]
-        self.He_Pressure_Start_of_Deco_Zone = [0.0 for i in range(ARRAY_LENGTH)]
-        self.N2_Pressure_Start_of_Deco_Zone = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Phase_Volume_Time = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Last_Phase_Volume_Time = [0.0 for i in range(ARRAY_LENGTH)]
+        self.He_Pressure_Start_of_Ascent = [0.0] * ARRAY_LENGTH
+        self.N2_Pressure_Start_of_Ascent = [0.0] * ARRAY_LENGTH
+        self.He_Pressure_Start_of_Deco_Zone = [0.0] * ARRAY_LENGTH
+        self.N2_Pressure_Start_of_Deco_Zone = [0.0] * ARRAY_LENGTH
+        self.Phase_Volume_Time = [0.0] * ARRAY_LENGTH
+        self.Last_Phase_Volume_Time = [0.0] * ARRAY_LENGTH
 
-        self.Allowable_Gradient_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Allowable_Gradient_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Allowable_Gradient_He = [0.0] * ARRAY_LENGTH
+        self.Allowable_Gradient_N2 = [0.0] * ARRAY_LENGTH
 
-        self.Adjusted_Crushing_Pressure_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Adjusted_Crushing_Pressure_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Adjusted_Crushing_Pressure_He = [0.0] * ARRAY_LENGTH
+        self.Adjusted_Crushing_Pressure_N2 = [0.0] * ARRAY_LENGTH
 
-        self.Initial_Allowable_Gradient_N2 = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Initial_Allowable_Gradient_He = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Initial_Allowable_Gradient_N2 = [0.0] * ARRAY_LENGTH
+        self.Initial_Allowable_Gradient_He = [0.0] * ARRAY_LENGTH
 
-        self.Deco_Gradient_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Deco_Gradient_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Deco_Gradient_He = [0.0] * ARRAY_LENGTH
+        self.Deco_Gradient_N2 = [0.0] * ARRAY_LENGTH
 
         # GLOBAL CONSTANTS
 
@@ -217,33 +217,33 @@ class DiveState(object):
         # GLOBAL ARRAYS
 
         # Float
-        self.Helium_Time_Constant = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Nitrogen_Time_Constant = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Helium_Time_Constant = [0.0] * ARRAY_LENGTH
+        self.Nitrogen_Time_Constant = [0.0] * ARRAY_LENGTH
 
-        self.Helium_Pressure = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Nitrogen_Pressure = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Helium_Pressure = [0.0] * ARRAY_LENGTH
+        self.Nitrogen_Pressure = [0.0] * ARRAY_LENGTH
 
-        self.Initial_Helium_Pressure = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Initial_Nitrogen_Pressure = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Initial_Helium_Pressure = [0.0] * ARRAY_LENGTH
+        self.Initial_Nitrogen_Pressure = [0.0] * ARRAY_LENGTH
 
         # self.Fraction_Oxygen = []
         self.Fraction_Helium = []
         self.Fraction_Nitrogen = []
 
-        self.Initial_Critical_Radius_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Initial_Critical_Radius_N2 = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Adjusted_Critical_Radius_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Adjusted_Critical_Radius_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Initial_Critical_Radius_He = [0.0] * ARRAY_LENGTH
+        self.Initial_Critical_Radius_N2 = [0.0] * ARRAY_LENGTH
+        self.Adjusted_Critical_Radius_He = [0.0] * ARRAY_LENGTH
+        self.Adjusted_Critical_Radius_N2 = [0.0] * ARRAY_LENGTH
 
-        self.Max_Crushing_Pressure_He = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Max_Crushing_Pressure_N2 = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Max_Crushing_Pressure_He = [0.0] * ARRAY_LENGTH
+        self.Max_Crushing_Pressure_N2 = [0.0] * ARRAY_LENGTH
 
-        self.Surface_Phase_Volume_Time = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Surface_Phase_Volume_Time = [0.0] * ARRAY_LENGTH
 
-        self.Max_Actual_Gradient = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Max_Actual_Gradient = [0.0] * ARRAY_LENGTH
 
-        self.Amb_Pressure_Onset_of_Imperm = [0.0 for i in range(ARRAY_LENGTH)]
-        self.Gas_Tension_Onset_of_Imperm = [0.0 for i in range(ARRAY_LENGTH)]
+        self.Amb_Pressure_Onset_of_Imperm = [0.0] * ARRAY_LENGTH
+        self.Gas_Tension_Onset_of_Imperm = [0.0] * ARRAY_LENGTH
 
         self.Diver_Acclimatized = None
 
@@ -484,8 +484,8 @@ class DiveState(object):
          """
         self.Segment_Time = float(ending_depth - starting_depth) / rate
 
-        self.Run_Time = self.Run_Time + self.Segment_Time
-        self.Segment_Number = self.Segment_Number + 1
+        self.Run_Time += self.Segment_Time
+        self.Segment_Number += 1
         self.Ending_Ambient_Pressure = ending_depth + self.Barometric_Pressure
 
         starting_ambient_pressure = starting_depth + self.Barometric_Pressure
@@ -767,7 +767,7 @@ class DiveState(object):
 
         self.Segment_Time = run_time_end_of_segment - self.Run_Time
         self.Run_Time = run_time_end_of_segment
-        self.Segment_Number = self.Segment_Number + 1
+        self.Segment_Number += 1
         ambient_pressure = depth + self.Barometric_Pressure
 
         inspired_helium_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Helium[self.Mix_Number - 1]
@@ -775,9 +775,6 @@ class DiveState(object):
         inspired_nitrogen_pressure = (ambient_pressure - self.Water_Vapor_Pressure) * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
         self.Ending_Ambient_Pressure = ambient_pressure
-
-        temp_helium_pressure = 0.0
-        temp_nitrogen_pressure = 0.0
 
         for i in range(ARRAY_LENGTH):
             temp_helium_pressure = self.Helium_Pressure[i]
@@ -1007,7 +1004,7 @@ class DiveState(object):
         Returns: None
         """
 
-        compartment_ascent_ceiling = [0.0 for i in range(ARRAY_LENGTH)]
+        compartment_ascent_ceiling = [0.0] * ARRAY_LENGTH
 
         # Since there are two sets of allowable gradients being tracked, one for
         # helium and one for nitrogen, a "weighted allowable gradient" must be
@@ -1073,10 +1070,10 @@ class DiveState(object):
         helium_rate = rate * self.Fraction_Helium[self.Mix_Number - 1]
         nitrogen_rate = rate * self.Fraction_Nitrogen[self.Mix_Number - 1]
 
-        temp_gas_loading = [0.0 for i in range(ARRAY_LENGTH)]
-        allowable_gas_loading = [0.0 for i in range(ARRAY_LENGTH)]
-        initial_helium_pressure = [0.0 for i in range(ARRAY_LENGTH)]
-        initial_nitrogen_pressure = [0.0 for i in range(ARRAY_LENGTH)]
+        temp_gas_loading = [0.0] * ARRAY_LENGTH
+        allowable_gas_loading = [0.0] * ARRAY_LENGTH
+        initial_helium_pressure = [0.0] * ARRAY_LENGTH
+        initial_nitrogen_pressure = [0.0] * ARRAY_LENGTH
 
         for i in range(ARRAY_LENGTH):
             initial_helium_pressure[i] = self.Helium_Pressure[i]
@@ -1255,7 +1252,7 @@ class DiveState(object):
         # compartment is empty of helium and nitrogen, then the weighted allowable
         # gradient formula cannot be used since it will result in division by zero.
 
-        compartment_deco_ceiling = [0.0 for i in range(ARRAY_LENGTH)]
+        compartment_deco_ceiling = [0.0] * ARRAY_LENGTH
 
         for i in range(ARRAY_LENGTH):
             gas_loading = self.Helium_Pressure[i] + self.Nitrogen_Pressure[i]
@@ -1312,7 +1309,6 @@ class DiveState(object):
         # separate write-up posted on the Deco List web site).
 
         parameter_lambda_pascals = (self.Crit_Volume_Parameter_Lambda / 33.0) * self.ATM
-        phase_volume_time = [0.0 for i in range(ARRAY_LENGTH)]
 
         for i in range(ARRAY_LENGTH):
 
@@ -1574,9 +1570,9 @@ class DiveState(object):
         Returns: None
         """
         num_gas_mixes = dive["num_gas_mixes"]
-        fraction_oxygen = [0.0 for i in range(num_gas_mixes)]
-        self.Fraction_Helium = [0.0 for i in range(num_gas_mixes)]
-        self.Fraction_Nitrogen = [0.0 for i in range(num_gas_mixes)]
+        fraction_oxygen = [0.0] * num_gas_mixes
+        self.Fraction_Helium = [0.0] * num_gas_mixes
+        self.Fraction_Nitrogen = [0.0] * num_gas_mixes
 
         for i in range(num_gas_mixes):
             gasmix_summary = dive["gasmix_summary"]
@@ -1655,7 +1651,7 @@ class DiveState(object):
             elif profile_code == 99:
                 break
             else:
-                raise InputFileException("Invalid profile code %d. Valid profile codes are 1 (descent), 2 (constant), and 99 (ascent)" % (profile_code))
+                raise InputFileException("Invalid profile code %d. Valid profile codes are 1 (descent), 2 (constant), and 99 (ascent)" % profile_code)
 
     def deco_stop_loop_block_within_critical_volume_loop(self):
         """
@@ -2017,10 +2013,10 @@ class DiveState(object):
 
             if profile_code == 99:
                 self.Number_of_Changes = profile["number_of_ascent_parameter_changes"]
-                self.Depth_Change = [0.0 for i in range(self.Number_of_Changes)]
-                self.Mix_Change = [0.0 for i in range(self.Number_of_Changes)]
-                self.Rate_Change = [0.0 for i in range(self.Number_of_Changes)]
-                self.Step_Size_Change = [0.0 for i in range(self.Number_of_Changes)]
+                self.Depth_Change = [0.0] * self.Number_of_Changes
+                self.Mix_Change = [0.0] * self.Number_of_Changes
+                self.Rate_Change = [0.0] * self.Number_of_Changes
+                self.Step_Size_Change = [0.0] * self.Number_of_Changes
 
                 for i, ascents in enumerate(profile["ascent_summary"]):
                     self.Depth_Change[i] = ascents["starting_depth"]
@@ -2152,7 +2148,7 @@ class DiveState(object):
                 continue
 
             else:
-                raise InputFileException("Invalid repetitive dive flag %d. Must be 0 (don't repeat) or 1 (repeat)" % (repetitive_dive_flag))
+                raise InputFileException("Invalid repetitive dive flag %d. Must be 0 (don't repeat) or 1 (repeat)" % repetitive_dive_flag)
 
         # pycallgraph.make_dot_graph('pycallgraph.png')
 
@@ -2231,6 +2227,7 @@ class HtmlOutput(object):
             print(output)
 
     def html_description_time_and_gasmix(self, dive):
+        """Return the table containing the time and gasmix"""
         return_string = ""
         return_string += "<p>"
 
@@ -2325,6 +2322,7 @@ class HtmlOutput(object):
         return return_string
 
     def html_header(self):
+        """Return the header of the html output"""
         header = '''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml"
@@ -2365,6 +2363,7 @@ class HtmlOutput(object):
         return header
 
     def html_footer(self):
+        """Return the html footer"""
         return "</body></html>"
 
     def to_json(self, file_pointer):
@@ -2467,7 +2466,7 @@ def radius_root_finder(A, B, C, low_bound, high_bound):
             last_diff_change = differential_change
             differential_change = function / derivative_of_function
             last_ending_radius = ending_radius
-            ending_radius = ending_radius - differential_change
+            ending_radius -= differential_change
             if last_ending_radius == ending_radius:
                 return ending_radius
         if abs(differential_change) < 1.0E-12:
