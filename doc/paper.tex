@@ -6,7 +6,7 @@
 \usepackage{longtable}
 \usepackage{ulem}
 \usepackage{listings}
-\usepackage[xindy]{glossaries}
+\usepackage{glossaries}
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{graphics}
@@ -48,7 +48,7 @@
 
 \normalem
 \hypersetup{colorlinks=true, linkcolor=blue, filecolor=blue, pagecolor=blue, urlcolor=blue}
-\makeglossary
+\makeglossaries
 
 \begin{document} 
 
@@ -122,7 +122,7 @@ the safety of divers at risk.
 
 Creating an open implementation of a modern decompression algorithm could make diving much safer, and
 provide divers with software that could be shown to be safe. This report outlines the design and implementation
-of a proof of concept implementation of the VPM-B \newglossaryentry{VPM-B}{ description={Varying Permeability Model}}
+of a proof of concept implementation of the VPM-B \newglossaryentry{VPM-B}{name={VPM-B}, description={Varying Permeability Model}}
 algorithm, in the hopes that it can provide a base on 
 which to build production quality software and hardware for an open dive computer.
 
@@ -150,9 +150,9 @@ into the VPM-B algorithm, that is implemented in the programs.
 \subsubsection{VPM}
  The VPM algorithm starts by adopting a model of body tissues developed by Albert A. B\"uhlmann. This model
 uses 16 tissue compartments to model the effect the dissolved gasses have on human tissues. During the
-normal part of the dive, gas is added to the compartments\cite{Buhlmann84} (on-gassing\newglossaryentry{On-Gassing} {description={The process of adding inert gasses to body tissues}}
+normal part of the dive, gas is added to the compartments\cite{Buhlmann84} (on-gassing\newglossaryentry{On-Gassing} {name={On-Gassing}, description={The process of adding inert gasses to body tissues}}
 ), and during the final ascent,
-they're released from the tissue (off-gassing\newglossaryentry{Off-Gassing} { description={The process of releasing inert gasses from body tissues}}
+they're released from the tissue (off-gassing\newglossaryentry{Off-Gassing} {name={Off-Gassing}, description={The process of releasing inert gasses from body tissues}}
 ). Many different compartments are needed because different
 tissues absorb and release gasses at different rates (as evidenced by the Helium\_Half\_Time and
 Nitrogen\_Half\_Time arrays in the program).
@@ -169,7 +169,7 @@ an ascent. On the downside, its much too conservative, and you'll spend far long
 to.
 
 To reduce the time decompressing without increasing the danger, the Critical Volume Algorithm is applied
-during the ascent. The CVA\newglossaryentry{CVA} { description={Critical Volume Algorithm, the algorithm that allows the VPM algorithm to give decent decompression times.}}
+during the ascent. The CVA\newglossaryentry{CVA} {name={CVA}, description={Critical Volume Algorithm, the algorithm that allows the VPM algorithm to give decent decompression times.}}
 can't reduce the time of a ``no bubble growth'' ascent, but it can limit
 the growth of the bubbles to a safe amount. This is done by calculating a ``no bubble growth'' ascent,
 and then applying the CVA iteratively until the ascent is judged safe.
@@ -201,7 +201,7 @@ For this honours project, two open source implementations of the algorithm VPM-B
 usable in a desktop setting to serve as a reference implementation, and allow the user to generate decompression
 tables, and a version able to work on an embedded computer, and do real time measurements of depth and time, to
 build accurate models of the gasses in a divers system. Furthermore, these implementations are released under the
-``Simplified BSD License'' \newglossaryentry{BSD License} { description={A family of software licenses that allow the use of the code in open source or proprietary software}}
+``Simplified BSD License'' \newglossaryentry{BSD License} {name={BSD License}, description={A family of software licenses that allow the use of the code in open source or proprietary software}}
 , which allows them to be used in a proprietary or open source dive computer. While
 this does allow a company to simply take the code, modify it, and use it in their product without
 giving back the changes, it is an acceptable compromise to it not being used at all, because it is under
@@ -220,20 +220,20 @@ algorithm, stepping through the program to see how all these pieces fit together
 
  Once the Python version was up and running, it was time to make many changes to the code to make it more
 in line with the programming practices taught at Carleton University. The original program was written for FORTRAN 77,
-and followed many of the practices common to FORTRAN\newglossaryentry{FORTRAN} { description={A programming language, popular with scientific researchers, but
+and followed many of the practices common to FORTRAN\newglossaryentry{FORTRAN} {name={FORTRAN}, description={A programming language, popular with scientific researchers, but
 not often taught to programmers these days}}
 programs (GOTOs, global state used for all long term storage,
 custom file formats for input data), which would be very hard for modern day programmers to follow. The program
 was made object oriented\footnote{There are definite instances of the ``God Object'' anti-pattern, but at least the state is encapsulated, and in a position to be refactored}, by ensuring that all the global state was encapsulated in a DiveState object, and all functions that would modify this state belonged to the object.
 The GOTOs were turned into normal loops with break statements, extremely long functions were broken into smaller
 pieces, and repeating code was extracted to stand alone methods. Finally,  the input and output file formats were changed
-to use JSON,\newglossaryentry{JSON} { description={JavaScript Object Notation, a lightweight data representation language
+to use JSON,\newglossaryentry{JSON} {name={JSON}, description={JavaScript Object Notation, a lightweight data representation language
 designed to be easier to write than XML}}
- as it is a standard format like XML\newglossaryentry{XML} { description={Extensible Markup Language, a language used
+ as it is a standard format like XML\newglossaryentry{XML} {name={XML}, description={Extensible Markup Language, a language used
 to structure data for easy computer reading and writing}}
 , that is supported by just about every programming language \footnote{Though not FORTRAN, so a translator was written to let the original program load the new input files}.
 
- Now that the Python program was finished, the port to C\newglossaryentry{C} { description={A programming language, designed for small size, and fast execution, which is 
+ Now that the Python program was finished, the port to C\newglossaryentry{C} {name={C}, description={A programming language, designed for small size, and fast execution, which is 
 well suited for embedded systems}}
  was started. This was fairly straightforward, but it did involve
 much more work to load JSON files than the Python version\footnote{The Python parser can turn it 
